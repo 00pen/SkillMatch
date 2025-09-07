@@ -79,59 +79,81 @@ export const db = {
         return { data: null, error };
       }
 
-      // If profile doesn't exist, check if the user's email was previously deleted
-      if (!data) {
-        // Get the current user's email from auth
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
-          console.error('Error getting auth user:', authError);
-          return { data: null, error: authError };
-        }
-
-        // Check if this email was previously deleted
-        const { data: isDeleted, error: checkError } = await supabase.rpc('is_email_deleted', {
-          p_email: user.email
-        });
-        
-        if (checkError) {
-          console.error('Email deletion check error:', checkError);
-          return { data: null, error: checkError };
-        }
-        
-        if (isDeleted) {
-          // Sign out the user and return an error
-          await supabase.auth.signOut();
-          return { 
-            data: null, 
-            error: new Error('This account was previously deleted and cannot be used. Please contact support if you need assistance.') 
-          };
-        }
-
-        // Create a new profile only if the email wasn't deleted
-        const { data: newProfile, error: createError } = await supabase
-          .from('user_profiles')
-          .insert([{
-            id: userId,
-            email: user.email,
-            full_name: '',
-            role: 'job_seeker',
-            profile_completion: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating user profile:', createError);
-          return { data: null, error: createError };
-        }
-
-        return { data: newProfile, error: null };
+      // If profile exists, return it
+      if (data) {
+        return { data, error: null };
       }
 
-      return { data, error: null };
+      // Profile doesn't exist - check if the user's email was previously deleted
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Error getting auth user:', authError);
+        return { data: null, error: authError };
+      }
+
+      // Check if this email was previously deleted
+      const { data: isDeleted, error: checkError } = await supabase.rpc('is_email_deleted', {
+        p_email: user.email
+      });
+      
+      if (checkError) {
+        console.error('Email deletion check error:', checkError);
+        return { data: null, error: checkError };
+      }
+      
+      if (isDeleted) {
+        // Sign out the user and return an error
+        await supabase.auth.signOut();
+        return { 
+          data: null, 
+          error: new Error('This account was previously deleted and cannot be used. Please contact support if you need assistance.') 
+        };
+      }
+
+      // Try to create a new profile, but handle race condition gracefully
+      const { data: newProfile, error: createError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: userId,
+          email: user.email,
+          full_name: '',
+          role: 'job_seeker',
+          profile_completion: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        // If duplicate key error, another process created the profile - fetch it
+        if (createError.code === '23505') {
+          console.log('Profile was created by another process, fetching existing profile');
+          const { data: existingProfile, error: fetchError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+          
+          if (fetchError) {
+            console.error('Error fetching existing profile after race condition:', fetchError);
+            return { data: null, error: fetchError };
+          }
+          
+          if (!existingProfile) {
+            console.error('Profile still not found after race condition');
+            return { data: null, error: new Error('Profile creation failed due to race condition') };
+          }
+          
+          return { data: existingProfile, error: null };
+        }
+        
+        console.error('Error creating user profile:', createError);
+        return { data: null, error: createError };
+      }
+
+      return { data: newProfile, error: null };
     } catch (error) {
       console.error('Error in getUserProfile:', error);
       return { data: null, error };

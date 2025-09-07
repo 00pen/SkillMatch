@@ -118,11 +118,19 @@ const AuthCallback = () => {
             });
             
             if (createError) {
+              // Handle duplicate key error (race condition)
+              if (createError.code === '23505') {
+                console.log('Profile was created by another process during OAuth callback');
+                // Profile was created by another process, continue normally
+              }
               // If oauth_provider column doesn't exist, try without it
-              if (createError.code === 'PGRST204' && createError.message.includes('oauth_provider')) {
+              else if (createError.code === 'PGRST204' && createError.message.includes('oauth_provider')) {
                 console.log('oauth_provider column not found, creating profile without it');
                 const { error: fallbackError } = await db.createUserProfile(session.user.id, profileData);
-                if (fallbackError) {
+                if (fallbackError && fallbackError.code === '23505') {
+                  console.log('Profile was created by another process during OAuth callback fallback');
+                  // Profile was created by another process, continue normally
+                } else if (fallbackError) {
                   console.error('Profile creation error:', fallbackError);
                 }
               } else {
