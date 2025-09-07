@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors */
+    --color-background: #FFFFFF; /* white */
+    --color-foreground: #121417; /* gray-900 */
+    --color-border: #E2E8F0; /* gray-200 */
+    --color-input: #FFFFFF; /* white */
+    --color-ring: #1DBF73; /* green-500 */
+    
+    /* Card Colors */
+    --color-card: #FFFFFF; /* white */
+    --color-card-foreground: #121417; /* gray-900 */
+    
+    /* Popover Colors */
+    --color-popover: #FFFFFF; /* white */
+    --color-popover-foreground: #121417; /* gray-900 */
+    
+    /* Muted Colors */
+    --color-muted: #F8FAFC; /* gray-50 */
+    --color-muted-foreground: #64748B; /* gray-500 */
+    
+    /* Primary Colors */
+    --color-primary: #0B0B0F; /* gray-950 */
+    --color-primary-foreground: #FFFFFF; /* white */
+    
+    /* Secondary Colors */
+    --color-secondary: #1DBF73; /* green-500 */
+    --color-secondary-foreground: #FFFFFF; /* white */
+    
+    /* Destructive Colors */
+    --color-destructive: #EF4444; /* red-500 */
+    --color-destructive-foreground: #FFFFFF; /* white */
+    
+    /* Accent Colors */
+    --color-accent: #E3FCD5; /* green-100 */
+    --color-accent-foreground: #0B0B0F; /* gray-950 */
+    
+    /* Success Colors */
+    --color-success: #16A34A; /* green-600 */
+    --color-success-foreground: #FFFFFF; /* white */
+    
+    /* Warning Colors */
+    --color-warning: #F59E0B; /* amber-500 */
+    --color-warning-foreground: #FFFFFF; /* white */
+    
+    /* Error Colors */
+    --color-error: #EF4444; /* red-500 */
+    --color-error-foreground: #FFFFFF; /* white */
+    
+    /* Additional Theme Colors */
+    --color-surface: #F8FAFC; /* gray-50 */
+    --color-text-primary: #121417; /* gray-900 */
+    --color-text-secondary: #64748B; /* gray-500 */
+    
+    /* Border Radius */
+    --radius: 8px;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Professional shadows following design specifications */
+  .shadow-subtle {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-modal {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-dropdown {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Micro-interaction transforms */
+  .hover-lift {
+    @apply transition-transform duration-150 ease-out;
+  }
+  
+  .hover-lift:hover {
+    @apply transform translate-y-[-2px] scale-[1.02];
+  }
+  
+  /* Status indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  
+  /* Navigation specific styles */
+  .nav-item {
+    @apply transition-colors duration-150 ease-out;
+  }
+  
+  .nav-item:hover {
+    @apply text-secondary;
+  }
+  
+  .nav-item.active {
+    @apply text-secondary font-medium;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 250ms ease-out;
+  }
+  
+  .animate-slide-in {
+    animation: slideIn 350ms ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  
+  /* Progress bar animation */
+  .progress-fill {
+    transition: width 300ms ease-out;
+  }
+}

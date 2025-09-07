@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="80" ry="80" fill="#1DBF73"/>
+  
+  <!-- Zap icon (Lucide Zap path) -->
+  <g transform="translate(256,256)">
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" 
+          fill="white" 
+          stroke="white" 
+          stroke-width="3" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          transform="scale(8) translate(-8,-8)"/>
+  </g>
+</svg>
