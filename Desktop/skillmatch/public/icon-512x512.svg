@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="80" ry="80" fill="#1DBF73"/>
+  
+  <!-- Zap icon centered -->
+  <g transform="translate(256,256)">
+    <path d="M52 8L12 56h36l-4 32 40-48h-36l4-32z" 
+          fill="white" 
+          stroke="white" 
+          stroke-width="4" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          transform="translate(-24,-24)"/>
+  </g>
+</svg>
