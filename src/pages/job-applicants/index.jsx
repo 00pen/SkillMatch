@@ -146,7 +146,8 @@ const JobApplicants = () => {
           <NavigationBreadcrumbs 
             items={[
               { label: 'Dashboard', href: '/employer-dashboard' },
-              { label: 'Job Applicants', href: '#' }
+              { label: job?.title || 'Job Details', href: `/job-details/${jobId}` },
+              { label: 'Applicants', href: '#' }
             ]} 
           />
           
@@ -272,11 +273,11 @@ const JobApplicants = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/employer/applicant/${applicant.id}`)}
+                          onClick={() => navigate(`/application-details/${applicant.id}`)}
                           iconName="Eye"
                           iconPosition="left"
                         >
-                          View Details
+                          View Application
                         </Button>
                       </div>
                     </div>

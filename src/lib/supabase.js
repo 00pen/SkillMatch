@@ -454,6 +454,19 @@ export const db = {
   },
 
   // Applications
+  getApplicationById: async (applicationId) => {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .select(`
+        *,
+        job:jobs(id, title, company_name, location),
+        applicant:user_profiles(full_name, email, phone, location)
+      `)
+      .eq('id', applicationId)
+      .single();
+    return { data, error };
+  },
+
   createApplication: async (applicationData) => {
     try {
       // Use the enhanced application function if available
