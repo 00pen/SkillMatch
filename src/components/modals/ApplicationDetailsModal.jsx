@@ -97,7 +97,9 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
 
   const currentApplication = applicationData || application;
   const currentMessages = applicationMessages.length > 0 ? applicationMessages : messages;
-  const currentInterviews = applicationInterviews.length > 0 ? applicationInterviews : interviews;
+  // Debug logging
+  console.log('ApplicationDetailsModal props:', { isOpen, currentApplication, isEmployer });
+  console.log('Modal should render:', isOpen && currentApplication);
 
   if (isLoading) {
     return (
@@ -112,16 +114,20 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
     );
   }
 
+  if (!isOpen) {
+    return null;
+  }
+
   if (!currentApplication) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-card rounded-lg shadow-xl p-8 text-center">
           <Icon name="AlertCircle" size={48} className="mx-auto text-error mb-4" />
           <h2 className="text-xl font-semibold text-text-primary">
-            {isEmployer ? 'Application Details' : 'My Application'}
+            No Application Data
           </h2>
           <p className="text-text-secondary mt-1">
-            {currentApplication.jobTitle || currentApplication.job?.title} at {currentApplication.company || (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')}
+            Unable to load application details.
           </p>
           <Button onClick={onClose}>Close</Button>
         </div>
