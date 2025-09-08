@@ -456,7 +456,7 @@ export const db = {
   // Applications
   getApplicationById: async (applicationId) => {
     const { data, error } = await supabase
-      .from('job_applications')
+      .from('applications')
       .select(`
         *,
         job:jobs(id, title, company_name, location),
