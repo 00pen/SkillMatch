@@ -404,9 +404,30 @@ export const db = {
   },
 
   createJob: async (jobData) => {
+    // Clean the job data to prevent circular references
+    const cleanJobData = {
+      title: jobData.title,
+      description: jobData.description,
+      location: jobData.location,
+      job_type: jobData.job_type,
+      experience_level: jobData.experience_level,
+      salary_min: jobData.salary_min,
+      salary_max: jobData.salary_max,
+      salary_currency: jobData.salary_currency,
+      is_remote: jobData.is_remote,
+      application_deadline: jobData.application_deadline,
+      education_requirements: jobData.education_requirements,
+      created_by: jobData.created_by,
+      company_id: jobData.company_id,
+      status: jobData.status,
+      responsibilities: jobData.responsibilities,
+      requirements: jobData.requirements,
+      benefits: jobData.benefits
+    };
+
     const { data, error } = await supabase
       .from('jobs')
-      .insert([jobData])
+      .insert([cleanJobData])
       .select()
       .single();
     return { data, error };
