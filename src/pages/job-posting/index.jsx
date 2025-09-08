@@ -21,7 +21,6 @@ const JobPosting = () => {
     benefits: '',
     location: '',
     job_type: '',
-    employment_type: '',
     experience_level: '',
     salary_min: '',
     salary_max: '',
@@ -29,13 +28,8 @@ const JobPosting = () => {
     is_remote: false,
     skills_required: [],
     company_id: '',
-    department: '',
     application_deadline: '',
-    start_date: '',
-    is_urgent: false,
-    application_instructions: '',
-    contact_email: '',
-    contact_phone: ''
+    education_requirements: ''
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +83,6 @@ const JobPosting = () => {
     if (userProfile) {
       setFormData(prev => ({
         ...prev,
-        contact_email: user?.email || '',
         location: userProfile.location || ''
       }));
     }
@@ -147,11 +140,6 @@ const JobPosting = () => {
       newErrors.salary_max = 'Maximum salary must be greater than minimum salary';
     }
     
-    if (!formData.contact_email.trim()) {
-      newErrors.contact_email = 'Contact email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
-      newErrors.contact_email = 'Please enter a valid email address';
-    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -291,13 +279,6 @@ const JobPosting = () => {
                     required
                   />
                   
-                  <Input
-                    label="Department"
-                    type="text"
-                    placeholder="e.g., Engineering, Marketing"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -470,50 +451,19 @@ const JobPosting = () => {
                     onChange={(e) => handleInputChange('application_deadline', e.target.value)}
                   />
                   
-                  <Input
-                    label="Expected Start Date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Contact Email"
-                    type="email"
-                    placeholder="hiring@company.com"
-                    value={formData.contact_email}
-                    onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                    error={errors.contact_email}
-                    required
-                  />
-                  
-                  <Input
-                    label="Contact Phone"
-                    type="tel"
-                    placeholder="+1 (555) 123-4567"
-                    value={formData.contact_phone}
-                    onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                  />
-                </div>
+                
                 
                 <Input
-                  label="Application Instructions"
+                  label="Education Requirements"
                   type="textarea"
-                  placeholder="Provide specific instructions for applicants (e.g., portfolio requirements, cover letter topics)..."
-                  value={formData.application_instructions}
-                  onChange={(e) => handleInputChange('application_instructions', e.target.value)}
-                  rows={3}
+                  placeholder="e.g., Bachelor's degree in Computer Science or equivalent experience"
+                  value={formData.education_requirements}
+                  onChange={(e) => handleInputChange('education_requirements', e.target.value)}
+                  rows={2}
                 />
                 
-                <div className="flex items-center space-x-4">
-                  <Checkbox
-                    label="Mark as Urgent Hiring"
-                    checked={formData.is_urgent}
-                    onChange={(checked) => handleInputChange('is_urgent', checked)}
-                  />
-                </div>
               </div>
 
               {/* Success/Error Messages */}

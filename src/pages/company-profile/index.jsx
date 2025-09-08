@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/supabase';
+import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
 import RoleAdaptiveNavbar from '../../components/ui/RoleAdaptiveNavbar';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
 import Input from '../../components/ui/Input';
@@ -26,6 +28,11 @@ const CompanyProfile = () => {
   const [existingCompanies, setExistingCompanies] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [companySearchTerm, setCompanySearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
   const [logoFile, setLogoFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -55,6 +62,42 @@ const CompanyProfile = () => {
 
   useEffect(() => {
     loadExistingCompanies();
+  }, []);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (companySearchTerm.length >= 2) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const { data, error } = await db.searchCompanies(companySearchTerm);
+          if (!error && data) {
+            setSearchResults(data);
+            setShowSearchResults(true);
+          }
+        } catch (error) {
+          console.error('Company search error:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setIsSearching(false);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [companySearchTerm]);
+
+  useEffect(() => {
     loadCurrentCompany();
   }, [userProfile]);
 
@@ -102,9 +145,55 @@ const CompanyProfile = () => {
 
   const handleInputChange = (field, value) => {
     setCompanyData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear field-specific errors
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleCompanySearch = (value) => {
+    setCompanySearchTerm(value);
+    setIsCreatingNew(false);
+    setSelectedCompanyId('');
+  };
+
+  const handleCompanySelect = (company) => {
+    setSelectedCompanyId(company.id);
+    setCompanySearchTerm(company.name);
+    setShowSearchResults(false);
+    setIsCreatingNew(false);
+    
+    // Auto-fill form with company data
+    setCompanyData({
+      name: company.name || '',
+      description: company.description || '',
+      industry: company.industry || '',
+      size: company.size || '',
+      founded: company.founded ? company.founded.toString() : '',
+      headquarters: company.headquarters || '',
+      website: company.website || '',
+      logo_url: company.logo_url || ''
+    });
+  };
+
+  const handleCreateNew = () => {
+    setIsCreatingNew(true);
+    setSelectedCompanyId('');
+    setCompanySearchTerm('');
+    setShowSearchResults(false);
+    
+    // Clear form for new company
+    setCompanyData({
+      name: '',
+      description: '',
+      industry: '',
+      size: '',
+      founded: '',
+      headquarters: '',
+      website: '',
+      logo_url: ''
+    });
   };
 
   const handleCompanySelection = async (companyId) => {
@@ -228,17 +317,23 @@ const CompanyProfile = () => {
       }
       
       // Update user profile with company association
-      await updateProfile({ 
+      const { error: profileError } = await updateProfile({ 
         company_id: companyId,
         company_name: companyData.name,
         industry: companyData.industry,
         website_url: companyData.website
       });
       
+      if (profileError) {
+        setErrors({ submit: `Profile update failed: ${profileError.message}` });
+        return;
+      }
+      
       setSuccessMessage('Company profile saved successfully!');
       setTimeout(() => {
-        navigate('/employer-dashboard');
-      }, 2000);
+        // Force a page reload to refresh the dashboard data
+        window.location.href = '/employer-dashboard';
+      }, 1500);
       
     } catch (error) {
       console.error('Company save error:', error);
@@ -289,25 +384,85 @@ const CompanyProfile = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Company Selection */}
               {existingCompanies.length > 0 && !userProfile?.company_id && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-text-primary">Select Company</h3>
-                  <Select
-                    label="Choose existing company or create new"
-                    placeholder="Select a company"
-                    options={[
-                      ...existingCompanies.map(company => ({
-                        value: company.id,
-                        label: company.name
-                      })),
-                      { value: 'new', label: '+ Create New Company' }
-                    ]}
-                    value={selectedCompanyId || 'new'}
-                    onChange={handleCompanySelection}
-                  />
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Company Selection
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        value={companySearchTerm}
+                        onChange={(e) => handleCompanySearch(e.target.value)}
+                        placeholder="Search for your company or type to create new..."
+                        className="w-full"
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Icon name="Loader" size={16} className="animate-spin text-text-secondary" />
+                        </div>
+                      )}
+                      
+                      {/* Search Results Dropdown */}
+                      {showSearchResults && searchResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {searchResults.map((company) => (
+                            <button
+                              key={company.id}
+                              onClick={() => handleCompanySelect(company)}
+                              className="w-full px-4 py-3 text-left hover:bg-muted/50 border-b border-border last:border-b-0 flex items-center space-x-3"
+                            >
+                              {company.logo_url ? (
+                                <img 
+                                  src={company.logo_url} 
+                                  alt={company.name}
+                                  className="w-8 h-8 rounded object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                                  <Icon name="Building" size={16} className="text-primary" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-text-primary">{company.name}</p>
+                                <p className="text-sm text-text-secondary">{company.industry}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Create New Option */}
+                      {companySearchTerm && !selectedCompanyId && (
+                        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                          <button
+                            onClick={handleCreateNew}
+                            className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center space-x-3"
+                          >
+                            <div className="w-8 h-8 bg-success/10 rounded flex items-center justify-center">
+                              <Icon name="Plus" size={16} className="text-success" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-text-primary">Create "{companySearchTerm}"</p>
+                              <p className="text-sm text-text-secondary">Create a new company profile</p>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {selectedCompanyId && (
+                      <div className="mt-2 p-3 bg-success/10 border border-success/20 rounded-lg flex items-center space-x-2">
+                        <Icon name="CheckCircle" size={16} className="text-success" />
+                        <span className="text-sm text-success font-medium">
+                          Company selected - form auto-filled with existing data
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Company Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-text-primary">Company Information</h3>
                 

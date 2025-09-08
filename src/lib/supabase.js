@@ -608,6 +608,20 @@ export const db = {
     return { error };
   },
 
+  searchCompanies: async (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      return { data: [], error: null };
+    }
+    
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .or(`name.ilike.%${searchTerm}%,industry.ilike.%${searchTerm}%`)
+      .order('name')
+      .limit(10);
+    return { data, error };
+  },
+
   // Saved Jobs
   saveJob: async (userId, jobId) => {
     const { data, error } = await supabase

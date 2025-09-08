@@ -81,6 +81,18 @@ const EmployerDashboard = () => {
     }
   }, [user, userProfile]);
 
+  // Add effect to refresh data when returning from company profile
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user && userProfile) {
+        loadDashboardData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, userProfile]);
+
   // Dynamic metrics data based on real stats
   const metricsData = [
     {
