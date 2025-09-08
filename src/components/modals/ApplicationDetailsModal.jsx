@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 import Icon from '../AppIcon';
 import ApplicationProgressIndicator from '../../pages/application-tracking/components/ApplicationProgressIndicator';
-import ApplicationStatusBadge from '../ApplicationStatusBadge';
+import ApplicationStatusBadge from '../../pages/application-tracking/components/ApplicationStatusBadge';
 
 const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], interviews = [], isEmployer = false }) => {
   const [applicationData, setApplicationData] = useState(null);
