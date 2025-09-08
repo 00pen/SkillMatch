@@ -347,7 +347,7 @@ Best regards,
 END $$;
 
 -- Function to send application status update with message
-CREATE OR REPLACE FUNCTION update_application_status_with_message(
+CREATE OR REPLACE FUNCTION public.update_application_status_with_message(
   p_application_id uuid,
   p_new_status text,
   p_sender_id uuid,
@@ -363,29 +363,29 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_application applications%ROWTYPE;
-  v_job jobs%ROWTYPE;
-  v_company companies%ROWTYPE;
-  v_user_profile user_profiles%ROWTYPE;
+  v_application public.applications%ROWTYPE;
+  v_job public.jobs%ROWTYPE;
+  v_company public.companies%ROWTYPE;
+  v_user_profile public.user_profiles%ROWTYPE;
   v_message_id uuid;
-  v_template message_templates%ROWTYPE;
+  v_template public.message_templates%ROWTYPE;
   v_final_subject text;
   v_final_content text;
   v_interview_id uuid;
 BEGIN
   -- Get application details
-  SELECT * INTO v_application FROM applications WHERE id = p_application_id;
+  SELECT * INTO v_application FROM public.applications WHERE id = p_application_id;
   IF NOT FOUND THEN
     RETURN json_build_object('success', false, 'message', 'Application not found');
   END IF;
   
   -- Get job and company details
-  SELECT * INTO v_job FROM jobs WHERE id = v_application.job_id;
-  SELECT * INTO v_company FROM companies WHERE id = v_job.company_id;
-  SELECT * INTO v_user_profile FROM user_profiles WHERE id = v_application.user_id;
+  SELECT * INTO v_job FROM public.jobs WHERE id = v_application.job_id;
+  SELECT * INTO v_company FROM public.companies WHERE id = v_job.company_id;
+  SELECT * INTO v_user_profile FROM public.user_profiles WHERE id = v_application.user_id;
   
   -- Update application status
-  UPDATE applications 
+  UPDATE public.applications 
   SET 
     status = p_new_status,
     updated_at = now(),
@@ -397,7 +397,7 @@ BEGIN
   
   -- Create interview record if scheduling interview
   IF p_new_status = 'interview_scheduled' AND p_interview_date IS NOT NULL THEN
-    INSERT INTO interviews (
+    INSERT INTO public.interviews (
       application_id,
       scheduled_at,
       interview_type,
@@ -414,7 +414,7 @@ BEGIN
   
   -- Determine message content
   IF p_template_name IS NOT NULL THEN
-    SELECT * INTO v_template FROM message_templates WHERE name = p_template_name;
+    SELECT * INTO v_template FROM public.message_templates WHERE name = p_template_name;
     IF FOUND THEN
       v_final_subject := v_template.subject_template;
       v_final_content := v_template.content_template;
@@ -443,7 +443,7 @@ BEGIN
   END IF;
   
   -- Create message record
-  INSERT INTO application_messages (
+  INSERT INTO public.application_messages (
     application_id,
     sender_id,
     sender_type,
@@ -469,7 +469,7 @@ BEGIN
   ) RETURNING id INTO v_message_id;
   
   -- Create email notification record
-  INSERT INTO email_notifications (
+  INSERT INTO public.email_notifications (
     application_id,
     recipient_email,
     subject,
@@ -499,7 +499,7 @@ END;
 $$;
 
 -- Function to get application details with messages and interviews
-CREATE OR REPLACE FUNCTION get_application_details(p_application_id uuid)
+CREATE OR REPLACE FUNCTION public.get_application_details(p_application_id uuid)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -513,20 +513,20 @@ BEGIN
     'company', row_to_json(c.*),
     'messages', COALESCE(
       (SELECT json_agg(row_to_json(m.*) ORDER BY m.created_at DESC)
-       FROM application_messages m 
+       FROM public.application_messages m 
        WHERE m.application_id = p_application_id), 
       '[]'::json
     ),
     'interviews', COALESCE(
       (SELECT json_agg(row_to_json(i.*) ORDER BY i.scheduled_at DESC)
-       FROM interviews i 
+       FROM public.interviews i 
        WHERE i.application_id = p_application_id), 
       '[]'::json
     )
   ) INTO v_result
-  FROM applications a
-  LEFT JOIN jobs j ON a.job_id = j.id
-  LEFT JOIN companies c ON j.company_id = c.id
+  FROM public.applications a
+  LEFT JOIN public.jobs j ON a.job_id = j.id
+  LEFT JOIN public.companies c ON j.company_id = c.id
   WHERE a.id = p_application_id;
   
   RETURN v_result;
@@ -534,7 +534,7 @@ END;
 $$;
 
 -- Function to get user applications with detailed information
-CREATE OR REPLACE FUNCTION get_user_applications_with_details(p_user_id uuid)
+CREATE OR REPLACE FUNCTION public.get_user_applications_with_details(p_user_id uuid)
 RETURNS TABLE (
   id uuid,
   user_id uuid,
@@ -600,27 +600,27 @@ BEGIN
     c.logo_url as company_logo_url,
     COALESCE(
       (SELECT json_agg(row_to_json(m.*) ORDER BY m.created_at DESC)
-       FROM application_messages m 
+       FROM public.application_messages m 
        WHERE m.application_id = a.id), 
       '[]'::json
     ) as messages,
     COALESCE(
       (SELECT json_agg(row_to_json(i.*) ORDER BY i.scheduled_at DESC)
-       FROM interviews i 
+       FROM public.interviews i 
        WHERE i.application_id = a.id), 
       '[]'::json
     ) as interviews,
     COALESCE(
       (SELECT COUNT(*)::integer
-       FROM application_messages m 
+       FROM public.application_messages m 
        WHERE m.application_id = a.id 
        AND m.sender_type = 'employer' 
        AND m.read_at IS NULL), 
       0
     ) as unread_messages_count
-  FROM applications a
-  LEFT JOIN jobs j ON a.job_id = j.id
-  LEFT JOIN companies c ON j.company_id = c.id
+  FROM public.applications a
+  LEFT JOIN public.jobs j ON a.job_id = j.id
+  LEFT JOIN public.companies c ON j.company_id = c.id
   WHERE a.user_id = p_user_id
   ORDER BY a.created_at DESC;
 END;

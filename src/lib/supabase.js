@@ -723,12 +723,12 @@ export const db = {
       p_application_id: applicationId,
       p_new_status: newStatus,
       p_sender_id: senderId,
-      p_message_subject: options.messageSubject,
-      p_message_content: options.messageContent,
-      p_template_name: options.templateName,
-      p_interview_date: options.interviewDate,
-      p_interview_type: options.interviewType,
-      p_interview_location: options.interviewLocation
+      p_message_subject: options.messageSubject || null,
+      p_message_content: options.messageContent || null,
+      p_template_name: options.templateName || null,
+      p_interview_date: options.interviewDate || null,
+      p_interview_type: options.interviewType || null,
+      p_interview_location: options.interviewLocation || null
     });
     return { data, error };
   },
