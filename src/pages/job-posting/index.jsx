@@ -166,16 +166,45 @@ const JobPosting = () => {
     setSuccessMessage('');
     
     try {
+      let companyId = userProfile?.company_id;
+      
+      // If no company exists, create one
+      if (!companyId) {
+        const companyData = {
+          name: userProfile?.company_name || 'My Company',
+          description: 'Company description',
+          industry: userProfile?.industry || 'Technology',
+          size: 'Small',
+          created_by: user.id
+        };
+        
+        const { data: companyResult, error: companyError } = await db.createCompany(companyData);
+        
+        if (companyError) {
+          setErrors({ submit: `Failed to create company: ${companyError.message}` });
+          return;
+        }
+        
+        companyId = companyResult.id;
+        
+        // Update user profile with company_id
+        await db.updateUserProfile(user.id, { company_id: companyId });
+      }
+
       const jobData = {
         ...formData,
         created_by: user.id,
-        company_id: userProfile?.company_id || null,
+        company_id: companyId,
         status: 'active',
         application_count: 0,
         view_count: 0,
         posted_date: new Date().toISOString(),
         salary_min: formData.salary_min ? parseInt(formData.salary_min) : null,
-        salary_max: formData.salary_max ? parseInt(formData.salary_max) : null
+        salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
+        // Convert text fields to arrays for database compatibility
+        responsibilities: formData.responsibilities ? [formData.responsibilities] : [],
+        requirements: formData.requirements ? [formData.requirements] : [],
+        benefits: formData.benefits ? [formData.benefits] : []
       };
 
       const { data, error } = await db.createJob(jobData);
@@ -191,6 +220,7 @@ const JobPosting = () => {
       }, 2000);
       
     } catch (error) {
+      console.error('Job creation error:', error);
       setErrors({ submit: 'Failed to create job posting. Please try again.' });
     } finally {
       setIsLoading(false);

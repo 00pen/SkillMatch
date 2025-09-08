@@ -47,7 +47,7 @@ const CompanyProfileCompletionWidget = ({ userProfile, companyProfile }) => {
   const missingFields = getMissingFields();
 
   const handleCompleteProfile = () => {
-    navigate('/profile');
+    navigate('/company-profile');
   };
 
   const getCompletionColor = (percentage) => {

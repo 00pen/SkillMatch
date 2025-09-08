@@ -1,0 +1,459 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../lib/supabase';
+import RoleAdaptiveNavbar from '../../components/ui/RoleAdaptiveNavbar';
+import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Button from '../../components/ui/Button';
+import FileUpload from '../../components/ui/FileUpload';
+import Icon from '../../components/AppIcon';
+
+const CompanyProfile = () => {
+  const navigate = useNavigate();
+  const { user, userProfile, updateProfile } = useAuth();
+  const [companyData, setCompanyData] = useState({
+    name: '',
+    description: '',
+    industry: '',
+    size: '',
+    founded: '',
+    headquarters: '',
+    website: '',
+    logo_url: ''
+  });
+  const [existingCompanies, setExistingCompanies] = useState([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const industries = [
+    { value: 'technology', label: 'Technology' },
+    { value: 'healthcare', label: 'Healthcare' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'education', label: 'Education' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'retail', label: 'Retail' },
+    { value: 'consulting', label: 'Consulting' },
+    { value: 'media', label: 'Media & Entertainment' },
+    { value: 'nonprofit', label: 'Non-Profit' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const companySizes = [
+    { value: '1-10', label: '1-10 employees' },
+    { value: '11-50', label: '11-50 employees' },
+    { value: '51-200', label: '51-200 employees' },
+    { value: '201-500', label: '201-500 employees' },
+    { value: '501-1000', label: '501-1000 employees' },
+    { value: '1000+', label: '1000+ employees' }
+  ];
+
+  useEffect(() => {
+    loadExistingCompanies();
+    loadCurrentCompany();
+  }, [userProfile]);
+
+  const loadExistingCompanies = async () => {
+    try {
+      // Get companies created by this user
+      const { data, error } = await db.getCompanyJobs(user.id);
+      if (!error && data) {
+        const companies = data.map(job => job.companies).filter(Boolean);
+        const uniqueCompanies = companies.reduce((acc, company) => {
+          if (!acc.find(c => c.id === company.id)) {
+            acc.push(company);
+          }
+          return acc;
+        }, []);
+        setExistingCompanies(uniqueCompanies);
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
+
+  const loadCurrentCompany = async () => {
+    if (userProfile?.company_id) {
+      try {
+        const { data, error } = await db.getCompanyById(userProfile.company_id);
+        if (!error && data) {
+          setCompanyData(data);
+          setSelectedCompanyId(data.id);
+        }
+      } catch (error) {
+        console.error('Error loading current company:', error);
+      }
+    } else if (userProfile?.company_name) {
+      // Pre-fill with profile data if no company is associated
+      setCompanyData(prev => ({
+        ...prev,
+        name: userProfile.company_name,
+        industry: userProfile.industry || '',
+        website: userProfile.website_url || ''
+      }));
+      setIsCreatingNew(true);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setCompanyData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleCompanySelection = async (companyId) => {
+    if (companyId === 'new') {
+      setIsCreatingNew(true);
+      setSelectedCompanyId('');
+      setCompanyData({
+        name: userProfile?.company_name || '',
+        description: '',
+        industry: userProfile?.industry || '',
+        size: '',
+        founded: '',
+        headquarters: '',
+        website: userProfile?.website_url || '',
+        logo_url: ''
+      });
+    } else {
+      setIsCreatingNew(false);
+      setSelectedCompanyId(companyId);
+      
+      try {
+        const { data, error } = await db.getCompanyById(companyId);
+        if (!error && data) {
+          setCompanyData(data);
+        }
+      } catch (error) {
+        console.error('Error loading selected company:', error);
+      }
+    }
+  };
+
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+
+    try {
+      setIsLoading(true);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `company_logo_${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await db.uploadFile(file, 'company-logos', filePath);
+      
+      if (uploadError) {
+        setErrors({ logo: `Failed to upload logo: ${uploadError.message}` });
+        return;
+      }
+      
+      setLogoFile(file);
+      handleInputChange('logo_url', uploadData.publicUrl);
+      setSuccessMessage('Logo uploaded successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      setErrors({ logo: 'Failed to upload logo. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!companyData.name.trim()) {
+      newErrors.name = 'Company name is required';
+    }
+    
+    if (!companyData.industry) {
+      newErrors.industry = 'Industry is required';
+    }
+    
+    if (companyData.website && !/^https?:\/\/.+/.test(companyData.website)) {
+      newErrors.website = 'Please enter a valid website URL';
+    }
+    
+    if (companyData.founded && (isNaN(companyData.founded) || companyData.founded < 1800 || companyData.founded > new Date().getFullYear())) {
+      newErrors.founded = 'Please enter a valid founding year';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    setSuccessMessage('');
+    
+    try {
+      let companyId = selectedCompanyId;
+      
+      if (isCreatingNew || !companyId) {
+        // Create new company
+        const { data: newCompany, error: createError } = await db.createCompany({
+          ...companyData,
+          created_by: user.id,
+          founded: companyData.founded ? parseInt(companyData.founded) : null
+        });
+        
+        if (createError) {
+          setErrors({ submit: createError.message });
+          return;
+        }
+        
+        companyId = newCompany.id;
+      } else {
+        // Update existing company
+        const { error: updateError } = await db.updateCompany(companyId, {
+          ...companyData,
+          founded: companyData.founded ? parseInt(companyData.founded) : null
+        });
+        
+        if (updateError) {
+          setErrors({ submit: updateError.message });
+          return;
+        }
+      }
+      
+      // Update user profile with company association
+      await updateProfile({ 
+        company_id: companyId,
+        company_name: companyData.name,
+        industry: companyData.industry,
+        website_url: companyData.website
+      });
+      
+      setSuccessMessage('Company profile saved successfully!');
+      setTimeout(() => {
+        navigate('/employer-dashboard');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Company save error:', error);
+      setErrors({ submit: 'Failed to save company profile. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!user || userProfile?.role !== 'employer') {
+    return (
+      <div className="min-h-screen bg-background">
+        <RoleAdaptiveNavbar />
+        <div className="pt-16 flex items-center justify-center">
+          <div className="text-center">
+            <Icon name="Building" size={48} className="mx-auto text-text-secondary mb-4" />
+            <h1 className="text-2xl font-bold text-text-primary mb-2">Access Denied</h1>
+            <p className="text-text-secondary mb-6">Only employers can manage company profiles.</p>
+            <Button
+              variant="default"
+              onClick={() => navigate('/login')}
+              iconName="LogIn"
+              iconPosition="left"
+            >
+              Sign In as Employer
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <RoleAdaptiveNavbar />
+      <div className="pt-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <NavigationBreadcrumbs className="mb-6" />
+          
+          <div className="bg-card border border-border rounded-lg shadow-card">
+            <div className="p-6 border-b border-border">
+              <h1 className="text-2xl font-bold text-text-primary">Company Profile</h1>
+              <p className="text-text-secondary mt-1">
+                Manage your company information and branding
+              </p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Company Selection */}
+              {existingCompanies.length > 0 && !userProfile?.company_id && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-text-primary">Select Company</h3>
+                  <Select
+                    label="Choose existing company or create new"
+                    placeholder="Select a company"
+                    options={[
+                      ...existingCompanies.map(company => ({
+                        value: company.id,
+                        label: company.name
+                      })),
+                      { value: 'new', label: '+ Create New Company' }
+                    ]}
+                    value={selectedCompanyId || 'new'}
+                    onChange={handleCompanySelection}
+                  />
+                </div>
+              )}
+
+              {/* Company Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-text-primary">Company Information</h3>
+                
+                {/* Company Logo */}
+                <div className="bg-muted/30 border border-border rounded-lg p-6">
+                  <h4 className="text-md font-medium text-text-primary mb-4">Company Logo</h4>
+                  <div className="flex items-center space-x-6">
+                    <div className="w-24 h-24 rounded-lg bg-background border-2 border-border flex items-center justify-center overflow-hidden">
+                      {companyData.logo_url ? (
+                        <img 
+                          src={companyData.logo_url} 
+                          alt="Company Logo" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Icon name="Building" size={32} className="text-text-secondary" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <FileUpload
+                        label="Upload Company Logo"
+                        acceptedFileTypes=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                        maxFileSize={5 * 1024 * 1024}
+                        onFileSelect={handleLogoUpload}
+                        currentFile={logoFile}
+                        helperText="Upload a company logo (JPG, PNG, GIF, WebP, SVG - max 5MB)"
+                      />
+                      {errors.logo && (
+                        <p className="text-sm text-error mt-1">{errors.logo}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Company Name"
+                    type="text"
+                    placeholder="Enter company name"
+                    value={companyData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    error={errors.name}
+                    required
+                  />
+                  
+                  <Select
+                    label="Industry"
+                    placeholder="Select industry"
+                    options={industries}
+                    value={companyData.industry}
+                    onChange={(value) => handleInputChange('industry', value)}
+                    error={errors.industry}
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select
+                    label="Company Size"
+                    placeholder="Select company size"
+                    options={companySizes}
+                    value={companyData.size}
+                    onChange={(value) => handleInputChange('size', value)}
+                  />
+                  
+                  <Input
+                    label="Founded Year"
+                    type="number"
+                    placeholder="e.g., 2020"
+                    value={companyData.founded}
+                    onChange={(e) => handleInputChange('founded', e.target.value)}
+                    error={errors.founded}
+                  />
+                  
+                  <Input
+                    label="Website"
+                    type="url"
+                    placeholder="https://company.com"
+                    value={companyData.website}
+                    onChange={(e) => handleInputChange('website', e.target.value)}
+                    error={errors.website}
+                  />
+                </div>
+                
+                <Input
+                  label="Headquarters"
+                  type="text"
+                  placeholder="City, State, Country"
+                  value={companyData.headquarters}
+                  onChange={(e) => handleInputChange('headquarters', e.target.value)}
+                />
+                
+                <Input
+                  label="Company Description"
+                  type="textarea"
+                  placeholder="Describe your company, mission, and culture..."
+                  value={companyData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  rows={4}
+                />
+              </div>
+
+              {/* Success/Error Messages */}
+              {successMessage && (
+                <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="CheckCircle" size={16} className="text-success" />
+                    <span className="text-sm text-success">{successMessage}</span>
+                  </div>
+                </div>
+              )}
+
+              {errors.submit && (
+                <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="AlertCircle" size={16} className="text-error" />
+                    <span className="text-sm text-error">{errors.submit}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/employer-dashboard')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="default"
+                  loading={isLoading}
+                  iconName="Save"
+                  iconPosition="left"
+                >
+                  {isLoading ? 'Saving...' : 'Save Company Profile'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CompanyProfile;

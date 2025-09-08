@@ -10,6 +10,7 @@ import MetricsWidget from './components/MetricsWidget';
 import ActivityFeed from './components/ActivityFeed';
 import CompanyProfileWidget from './components/CompanyProfileWidget';
 import CompanyProfileCompletionWidget from './components/CompanyProfileCompletionWidget';
+import CompanyManagementWidget from './components/CompanyManagementWidget';
 import QuickActions from './components/QuickActions';
 
 const EmployerDashboard = () => {
@@ -295,11 +296,19 @@ const EmployerDashboard = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Company Profile Completion Widget */}
-            <CompanyProfileCompletionWidget 
+            {/* Company Management Widget */}
+            <CompanyManagementWidget 
               userProfile={userProfile} 
               companyProfile={companyProfile} 
             />
+            
+            {/* Company Profile Completion Widget - only show if company exists */}
+            {userProfile?.company_id && (
+              <CompanyProfileCompletionWidget 
+                userProfile={userProfile} 
+                companyProfile={companyProfile} 
+              />
+            )}
             
             {/* Company Profile Widget */}
             {companyProfile && <CompanyProfileWidget profileData={companyProfile} />}

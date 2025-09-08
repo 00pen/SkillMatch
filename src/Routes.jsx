@@ -19,7 +19,8 @@ import Profile from './pages/profile';
 import JobPosting from './pages/job-posting/index';
 import CandidateBrowsing from './pages/candidates/index';
 import CandidateDetails from './pages/candidate-details/index';
-import CompanyDetails from './pages/company-details/index';
+import CompanyDetails from './pages/company-details';
+import CompanyProfile from './pages/company-profile/index';
 import SavedJobs from './pages/saved-jobs';
 import AuthCallback from './pages/auth/callback';
 
@@ -134,6 +135,13 @@ const Routes = () => {
               <ProtectedRoute requiredRole="job_seeker">
                 <PageTransition>
                   <SavedJobs />
+                </PageTransition>
+              </ProtectedRoute>
+            } />
+            <Route path="/company-profile" element={
+              <ProtectedRoute requiredRole="employer">
+                <PageTransition>
+                  <CompanyProfile />
                 </PageTransition>
               </ProtectedRoute>
             } />
