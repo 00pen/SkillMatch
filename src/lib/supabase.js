@@ -566,9 +566,8 @@ export const db = {
       .from('applications')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', applicationId)
-      .select()
-      .single();
-    return { data, error };
+      .select();
+    return { data: data?.[0], error };
   },
 
   deleteApplication: async (applicationId, userId) => {
@@ -694,9 +693,8 @@ export const db = {
         updated_at: new Date().toISOString()
       })
       .eq('id', applicationId)
-      .select()
-      .single();
-    return { data, error };
+      .select();
+    return { data: data?.[0], error };
   },
 
   // Saved Jobs
