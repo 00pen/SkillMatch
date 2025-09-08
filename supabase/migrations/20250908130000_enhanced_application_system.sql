@@ -94,6 +94,7 @@ ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for application_messages
+DROP POLICY IF EXISTS "Users can view messages for their applications" ON application_messages;
 CREATE POLICY "Users can view messages for their applications"
   ON application_messages
   FOR SELECT
@@ -107,6 +108,7 @@ CREATE POLICY "Users can view messages for their applications"
     )
   );
 
+DROP POLICY IF EXISTS "Users can create messages for their applications" ON application_messages;
 CREATE POLICY "Users can create messages for their applications"
   ON application_messages
   FOR INSERT
@@ -121,12 +123,14 @@ CREATE POLICY "Users can create messages for their applications"
   );
 
 -- RLS Policies for message_templates
+DROP POLICY IF EXISTS "Authenticated users can view message templates" ON message_templates;
 CREATE POLICY "Authenticated users can view message templates"
   ON message_templates
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Employers can manage message templates" ON message_templates;
 CREATE POLICY "Employers can manage message templates"
   ON message_templates
   FOR ALL
@@ -135,6 +139,7 @@ CREATE POLICY "Employers can manage message templates"
   WITH CHECK (true);
 
 -- RLS Policies for interviews
+DROP POLICY IF EXISTS "Users can view interviews for their applications" ON interviews;
 CREATE POLICY "Users can view interviews for their applications"
   ON interviews
   FOR SELECT
@@ -148,6 +153,7 @@ CREATE POLICY "Users can view interviews for their applications"
     )
   );
 
+DROP POLICY IF EXISTS "Employers can manage interviews" ON interviews;
 CREATE POLICY "Employers can manage interviews"
   ON interviews
   FOR ALL
@@ -168,6 +174,7 @@ CREATE POLICY "Employers can manage interviews"
   );
 
 -- RLS Policies for email_notifications
+DROP POLICY IF EXISTS "Users can view their email notifications" ON email_notifications;
 CREATE POLICY "Users can view their email notifications"
   ON email_notifications
   FOR SELECT
@@ -190,23 +197,29 @@ CREATE INDEX IF NOT EXISTS idx_interviews_scheduled_at ON interviews(scheduled_a
 CREATE INDEX IF NOT EXISTS idx_email_notifications_application_id ON email_notifications(application_id);
 
 -- Add triggers for updating timestamps
+DROP TRIGGER IF EXISTS update_message_templates_updated_at ON message_templates;
 CREATE TRIGGER update_message_templates_updated_at
   BEFORE UPDATE ON message_templates
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_interviews_updated_at ON interviews;
 CREATE TRIGGER update_interviews_updated_at
   BEFORE UPDATE ON interviews
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Insert default message templates
-INSERT INTO message_templates (name, message_type, subject_template, content_template, variables) VALUES
-(
-  'application_received',
-  'status_update',
-  'Application Received - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+-- Insert default message templates (only if they don't exist)
+DO $$
+BEGIN
+  -- Only insert templates if the table is empty
+  IF NOT EXISTS (SELECT 1 FROM message_templates LIMIT 1) THEN
+    INSERT INTO message_templates (name, message_type, subject_template, content_template, variables) VALUES
+    (
+      'application_received',
+      'status_update',
+      'Application Received - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 Thank you for your interest in the {{job_title}} position at {{company_name}}. We have received your application and our team will review it carefully.
 
@@ -214,13 +227,13 @@ We will contact you within the next few business days regarding the next steps i
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name"]'::jsonb
-),
-(
-  'application_reviewed',
-  'status_update',
-  'Application Update - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name"]'::jsonb
+    ),
+    (
+      'application_reviewed',
+      'status_update',
+      'Application Update - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 We have reviewed your application for the {{job_title}} position at {{company_name}}. We are impressed with your qualifications and would like to move forward with the next step in our hiring process.
 
@@ -228,13 +241,13 @@ We will be in touch soon with more details.
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name"]'::jsonb
-),
-(
-  'interview_invitation',
-  'interview_invite',
-  'Interview Invitation - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name"]'::jsonb
+    ),
+    (
+      'interview_invitation',
+      'interview_invite',
+      'Interview Invitation - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 Congratulations! We would like to invite you for an interview for the {{job_title}} position at {{company_name}}.
 
@@ -251,13 +264,13 @@ We look forward to speaking with you!
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name", "interview_date", "interview_time", "interview_type", "interview_location", "interview_duration"]'::jsonb
-),
-(
-  'offer_extended',
-  'offer',
-  'Job Offer - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name", "interview_date", "interview_time", "interview_type", "interview_location", "interview_duration"]'::jsonb
+    ),
+    (
+      'offer_extended',
+      'offer',
+      'Job Offer - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 We are pleased to extend an offer for the {{job_title}} position at {{company_name}}!
 
@@ -269,13 +282,13 @@ We are excited about the possibility of you joining our team!
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name", "offer_deadline"]'::jsonb
-),
-(
-  'application_rejected_generic',
-  'rejection',
-  'Application Update - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name", "offer_deadline"]'::jsonb
+    ),
+    (
+      'application_rejected_generic',
+      'rejection',
+      'Application Update - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 Thank you for your interest in the {{job_title}} position at {{company_name}} and for taking the time to apply.
 
@@ -287,13 +300,13 @@ We wish you the best in your job search.
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name"]'::jsonb
-),
-(
-  'application_rejected_after_interview',
-  'rejection',
-  'Interview Follow-up - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name"]'::jsonb
+    ),
+    (
+      'application_rejected_after_interview',
+      'rejection',
+      'Interview Follow-up - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 Thank you for taking the time to interview for the {{job_title}} position at {{company_name}}. We enjoyed our conversation and learning more about your background and experience.
 
@@ -305,13 +318,13 @@ We wish you the best in your job search and encourage you to apply for future op
 
 Best regards,
 {{company_name}} Hiring Team',
-  '["candidate_name", "job_title", "company_name"]'::jsonb
-),
-(
-  'candidate_hired',
-  'status_update',
-  'Welcome to the Team! - {{job_title}} at {{company_name}}',
-  'Dear {{candidate_name}},
+      '["candidate_name", "job_title", "company_name"]'::jsonb
+    ),
+    (
+      'candidate_hired',
+      'status_update',
+      'Welcome to the Team! - {{job_title}} at {{company_name}}',
+      'Dear {{candidate_name}},
 
 Congratulations and welcome to {{company_name}}!
 
@@ -328,8 +341,10 @@ We look forward to working with you!
 
 Best regards,
 {{company_name}} Team',
-  '["candidate_name", "job_title", "company_name", "start_date"]'::jsonb
-);
+      '["candidate_name", "job_title", "company_name", "start_date"]'::jsonb
+    );
+  END IF;
+END $$;
 
 -- Function to send application status update with message
 CREATE OR REPLACE FUNCTION update_application_status_with_message(

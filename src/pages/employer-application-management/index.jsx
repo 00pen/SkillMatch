@@ -75,17 +75,101 @@ const EmployerApplicationManagement = () => {
   };
 
   const handleStatusUpdate = (application) => {
-    setSelectedApplication(application);
+    // Create a safe copy of the application object to prevent serialization errors
+    const safeApplication = {
+      id: application?.id,
+      user_id: application?.user_id,
+      job_id: application?.job_id,
+      status: application?.status,
+      cover_letter: application?.cover_letter,
+      resume_url: application?.resume_url,
+      full_name: application?.full_name,
+      email: application?.email,
+      phone: application?.phone,
+      location: application?.location,
+      created_at: application?.created_at,
+      updated_at: application?.updated_at,
+      job: application?.job ? {
+        id: application.job.id,
+        title: application.job.title,
+        location: application.job.location,
+        job_type: application.job.job_type,
+        salary_min: application.job.salary_min,
+        salary_max: application.job.salary_max
+      } : null,
+      company: application?.company ? {
+        id: application.company.id,
+        name: application.company.name,
+        logo_url: application.company.logo_url
+      } : null
+    };
+    setSelectedApplication(safeApplication);
     setIsStatusModalOpen(true);
   };
 
   const handleScheduleInterview = (application) => {
-    setSelectedApplication(application);
+    // Create a safe copy of the application object to prevent serialization errors
+    const safeApplication = {
+      id: application?.id,
+      user_id: application?.user_id,
+      job_id: application?.job_id,
+      status: application?.status,
+      cover_letter: application?.cover_letter,
+      resume_url: application?.resume_url,
+      full_name: application?.full_name,
+      email: application?.email,
+      phone: application?.phone,
+      location: application?.location,
+      created_at: application?.created_at,
+      updated_at: application?.updated_at,
+      job: application?.job ? {
+        id: application.job.id,
+        title: application.job.title,
+        location: application.job.location,
+        job_type: application.job.job_type,
+        salary_min: application.job.salary_min,
+        salary_max: application.job.salary_max
+      } : null,
+      company: application?.company ? {
+        id: application.company.id,
+        name: application.company.name,
+        logo_url: application.company.logo_url
+      } : null
+    };
+    setSelectedApplication(safeApplication);
     setIsInterviewModalOpen(true);
   };
 
   const handleViewDetails = (application) => {
-    setSelectedApplication(application);
+    // Create a safe copy of the application object to prevent serialization errors
+    const safeApplication = {
+      id: application?.id,
+      user_id: application?.user_id,
+      job_id: application?.job_id,
+      status: application?.status,
+      cover_letter: application?.cover_letter,
+      resume_url: application?.resume_url,
+      full_name: application?.full_name,
+      email: application?.email,
+      phone: application?.phone,
+      location: application?.location,
+      created_at: application?.created_at,
+      updated_at: application?.updated_at,
+      job: application?.job ? {
+        id: application.job.id,
+        title: application.job.title,
+        location: application.job.location,
+        job_type: application.job.job_type,
+        salary_min: application.job.salary_min,
+        salary_max: application.job.salary_max
+      } : null,
+      company: application?.company ? {
+        id: application.company.id,
+        name: application.company.name,
+        logo_url: application.company.logo_url
+      } : null
+    };
+    setSelectedApplication(safeApplication);
     setIsDetailsModalOpen(true);
   };
 
