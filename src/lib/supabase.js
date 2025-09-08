@@ -643,7 +643,38 @@ export const db = {
       `)
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
-    return { data, error };
+    
+    if (error) return { data, error };
+    
+    // Add application count and format data for each job
+    const jobsWithCounts = await Promise.all(
+      (data || []).map(async (job) => {
+        // Get application count
+        const { count } = await supabase
+          .from('applications')
+          .select('*', { count: 'exact', head: true })
+          .eq('job_id', job.id);
+        
+        // Format the job data
+        return {
+          ...job,
+          applicationCount: count || 0,
+          deadline: job.application_deadline,
+          salaryRange: job.salary_min && job.salary_max 
+            ? `${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}`
+            : job.salary_min 
+            ? `${job.salary_min.toLocaleString()}+`
+            : 'Competitive',
+          postedDate: new Date(job.created_at).toLocaleDateString(),
+          views: job.view_count || 0,
+          type: job.employment_type || 'Full-time',
+          department: job.department || 'General',
+          location: job.location || 'Remote'
+        };
+      })
+    );
+    
+    return { data: jobsWithCounts, error: null };
   },
 
   updateCompany: async (companyId, updates) => {

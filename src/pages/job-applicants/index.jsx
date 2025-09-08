@@ -37,7 +37,11 @@ const JobApplicants = () => {
   ];
 
   useEffect(() => {
-    loadJobAndApplicants();
+    // Only run if we're actually on the correct route
+    const currentPath = window.location.pathname;
+    if (currentPath.match(/^\/employer\/job\/[^\/]+\/applicants$/)) {
+      loadJobAndApplicants();
+    }
   }, [jobId]);
 
   const loadJobAndApplicants = async () => {

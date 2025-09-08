@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/supabase';
+import { db, supabase } from '../../lib/supabase';
 import RoleAdaptiveNavbar from '../../components/ui/RoleAdaptiveNavbar';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
 import Button from '../../components/ui/Button';
@@ -43,23 +43,96 @@ const ApplicationDetails = () => {
     try {
       setIsLoading(true);
       
-      // Load enhanced application details with messages and interviews
-      const { data: appData, error: appError } = await db.getApplicationDetails(applicationId);
-      if (appError) {
-        console.error('Error loading application:', appError);
-        return;
-      }
-      setApplication(appData);
-      setMessages(appData.messages || []);
-      setInterviews(appData.interviews || []);
+      // Try RPC function first, fallback to direct queries if it fails
+      const { data: rpcData, error: rpcError } = await db.getApplicationDetails(applicationId);
+      
+      if (rpcError || !rpcData) {
+        console.log('RPC failed, using fallback method:', rpcError);
+        
+        // Fallback: Direct table queries
+        const { data: appData, error: appError } = await supabase
+          .from('applications')
+          .select(`
+            *,
+            jobs!inner(
+              id,
+              title,
+              companies!inner(
+                id,
+                name
+              )
+            ),
+            user_profiles!inner(
+              id,
+              full_name,
+              email,
+              phone,
+              location
+            )
+          `)
+          .eq('id', applicationId)
+          .single();
+          
+        if (appError) {
+          console.error('Error loading application with fallback:', appError);
+          return;
+        }
+        
+        // Get messages
+        const { data: messagesData } = await supabase
+          .from('application_messages')
+          .select('*')
+          .eq('application_id', applicationId)
+          .order('created_at', { ascending: false });
+          
+        // Get interviews
+        const { data: interviewsData } = await supabase
+          .from('interviews')
+          .select('*')
+          .eq('application_id', applicationId)
+          .order('scheduled_at', { ascending: false });
+        
+        // Format the data to match expected structure
+        const formattedData = {
+          ...appData,
+          full_name: appData.user_profiles?.full_name,
+          email: appData.user_profiles?.email,
+          phone: appData.user_profiles?.phone,
+          location: appData.user_profiles?.location,
+          jobTitle: appData.jobs?.title,
+          company: appData.jobs?.companies?.name,
+          job: {
+            title: appData.jobs?.title,
+            company: {
+              name: appData.jobs?.companies?.name
+            }
+          }
+        };
+        
+        setApplication(formattedData);
+        setMessages(messagesData || []);
+        setInterviews(interviewsData || []);
+        
+        // Set job data from the application data
+        setJob({
+          id: appData.jobs?.id,
+          title: appData.jobs?.title,
+          company: appData.jobs?.companies
+        });
+        
+      } else {
+        setApplication(rpcData);
+        setMessages(rpcData.messages || []);
+        setInterviews(rpcData.interviews || []);
 
-      // Load job details
-      if (appData?.job_id) {
-        const { data: jobData, error: jobError } = await db.getJobById(appData.job_id);
-        if (jobError) {
-          console.error('Error loading job:', jobError);
-        } else {
-          setJob(jobData);
+        // Load job details
+        if (rpcData?.job_id) {
+          const { data: jobData, error: jobError } = await db.getJobById(rpcData.job_id);
+          if (jobError) {
+            console.error('Error loading job:', jobError);
+          } else {
+            setJob(jobData);
+          }
         }
       }
       
