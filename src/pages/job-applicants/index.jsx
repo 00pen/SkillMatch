@@ -11,13 +11,8 @@ const JobApplicants = () => {
   const params = useParams();
   const navigate = useNavigate();
   
-  // Debug logging
-  console.log('JobApplicants - All URL params:', params);
-  console.log('JobApplicants - current URL:', window.location.pathname);
-  
-  // Extract jobId from params - try different possible parameter names
-  const jobId = params.jobId || params.id || params.jobid;
-  console.log('JobApplicants - jobId extracted:', jobId);
+  // Extract jobId from params
+  const jobId = params.jobId;
   const { user, userProfile } = useAuth();
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
@@ -48,6 +43,12 @@ const JobApplicants = () => {
   const loadJobAndApplicants = async () => {
     try {
       setIsLoading(true);
+      
+      // Check if we're on the correct route
+      if (!window.location.pathname.includes('/employer/job/') || !window.location.pathname.includes('/applicants')) {
+        console.log('JobApplicants component loaded on wrong route, skipping');
+        return;
+      }
       
       // Validate jobId first
       if (!jobId || jobId === 'undefined' || jobId === 'null') {
