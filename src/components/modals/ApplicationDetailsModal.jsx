@@ -156,7 +156,12 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
             <div className="flex items-center space-x-4">
               <div>
                 <h3 className="font-medium text-text-primary">{currentApplication.jobTitle || currentApplication.job?.title}</h3>
-                <p className="text-text-secondary">{currentApplication.company || (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')}</p>
+                <p className="text-text-secondary">{
+                  typeof currentApplication.company === 'string' 
+                    ? currentApplication.company 
+                    : currentApplication.company?.name || 
+                      (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')
+                }</p>
               </div>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentApplication.status)}`}>
                 {getStatusLabel(currentApplication.status)}
@@ -251,7 +256,12 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
                     <h4 className="font-medium text-text-primary mb-3">Job Information</h4>
                     <div className="space-y-2 text-sm">
                       <div><span className="text-text-secondary">Job Title:</span> <span className="text-text-primary">{currentApplication.jobTitle || currentApplication.job?.title}</span></div>
-                      <div><span className="text-text-secondary">Company:</span> <span className="text-text-primary">{currentApplication.company || (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')}</span></div>
+                      <div><span className="text-text-secondary">Company:</span> <span className="text-text-primary">{
+                        typeof currentApplication.company === 'string' 
+                          ? currentApplication.company 
+                          : currentApplication.company?.name || 
+                            (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')
+                      }</span></div>
                     </div>
                   </div>
                 </div>
