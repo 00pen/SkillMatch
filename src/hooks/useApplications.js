@@ -20,7 +20,18 @@ export const useApplications = () => {
       setError(null);
       
       try {
-        const { data, error: fetchError } = await db.getUserApplicationsWithDetails(user.id);
+        // Fallback to regular getUserApplications if enhanced function fails
+        let data, fetchError;
+        try {
+          const result = await db.getUserApplicationsWithDetails(user.id);
+          data = result.data;
+          fetchError = result.error;
+        } catch (enhancedError) {
+          console.warn('Enhanced function failed, falling back to regular getUserApplications:', enhancedError);
+          const result = await db.getUserApplications(user.id);
+          data = result.data;
+          fetchError = result.error;
+        }
         
         if (fetchError) {
           throw fetchError;
@@ -30,15 +41,15 @@ export const useApplications = () => {
         const transformedApplications = data?.map(app => ({
           id: app.id,
           jobId: app.job_id,
-          jobTitle: app.jobs?.title,
-          company: app.jobs?.companies?.name,
-          location: app.jobs?.location,
-          positionType: app.jobs?.job_type,
+          jobTitle: app.job_title || app.jobs?.title || 'Unknown Position',
+          company: app.company_name || app.jobs?.companies?.name || 'Unknown Company',
+          location: app.job_location || app.jobs?.location || 'Not specified',
+          positionType: app.job_type || app.jobs?.job_type || 'Not specified',
           status: app.status,
           appliedDate: app.created_at,
           lastUpdated: app.updated_at,
-          salary: app.jobs?.salary_min && app.jobs?.salary_max 
-            ? `$${app.jobs.salary_min.toLocaleString()} - $${app.jobs.salary_max.toLocaleString()}`
+          salary: (app.salary_min && app.salary_max) || (app.jobs?.salary_min && app.jobs?.salary_max)
+            ? `$${(app.salary_min || app.jobs?.salary_min).toLocaleString()} - $${(app.salary_max || app.jobs?.salary_max).toLocaleString()}`
             : 'Not specified',
           coverLetter: app.cover_letter,
           resumeUrl: app.resume_url,
@@ -46,10 +57,10 @@ export const useApplications = () => {
           salaryExpectation: app.salary_expectation,
           availableStartDate: app.available_start_date,
           notes: app.notes,
-          messages: app.messages || [],
-          interviews: app.interviews || [],
-          messageCount: app.messages?.length || 0,
-          hasUnreadMessages: app.messages?.some(msg => !msg.read_by_candidate) || false
+          messages: Array.isArray(app.messages) ? app.messages : [],
+          interviews: Array.isArray(app.interviews) ? app.interviews : [],
+          messageCount: Array.isArray(app.messages) ? app.messages.length : 0,
+          hasUnreadMessages: Array.isArray(app.messages) ? app.messages.some(msg => !msg.read_by_candidate) : false
         })) || [];
         
         setApplications(transformedApplications);
