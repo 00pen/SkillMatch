@@ -8,9 +8,7 @@ import RoleAdaptiveNavbar from '../../components/ui/RoleAdaptiveNavbar';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import Button from '../../components/ui/Button';
 import FileUpload from '../../components/ui/FileUpload';
-import Icon from '../../components/AppIcon';
 
 const CompanyProfile = () => {
   const navigate = useNavigate();
