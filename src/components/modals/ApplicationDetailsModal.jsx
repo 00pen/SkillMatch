@@ -45,13 +45,6 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
                 id,
                 name
               )
-            ),
-            user_profiles!inner(
-              id,
-              full_name,
-              email,
-              phone,
-              location
             )
           `)
           .eq('id', application.id)
@@ -61,6 +54,13 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
           console.error('Error loading application with fallback:', appError);
           return;
         }
+        
+        // Get user profile data separately
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email, phone, location')
+          .eq('id', appData.user_id)
+          .single();
         
         // Get messages
         const { data: messagesData } = await supabase
@@ -79,10 +79,10 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
         // Format the data to match expected structure
         const formattedData = {
           ...appData,
-          full_name: appData.user_profiles?.full_name,
-          email: appData.user_profiles?.email,
-          phone: appData.user_profiles?.phone,
-          location: appData.user_profiles?.location,
+          full_name: profileData?.full_name || 'Unknown Applicant',
+          email: profileData?.email || 'No email provided',
+          phone: profileData?.phone || null,
+          location: profileData?.location || null,
           jobTitle: appData.jobs?.title,
           company: appData.jobs?.companies?.name,
           job: {

@@ -43,98 +43,105 @@ const ApplicationDetails = () => {
     try {
       setIsLoading(true);
       
-      // Try RPC function first, fallback to direct queries if it fails
-      const { data: rpcData, error: rpcError } = await db.getApplicationDetails(applicationId);
+      // Use direct queries for reliable data fetching
+      console.log('Loading application details for ID:', applicationId);
       
-      if (rpcError || !rpcData) {
-        console.log('RPC failed, using fallback method:', rpcError);
-        
-        // Fallback: Direct table queries
-        const { data: appData, error: appError } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            jobs!inner(
+      // Get application data with job and company info
+      const { data: appData, error: appError } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          jobs!inner(
+            id,
+            title,
+            department,
+            location,
+            employment_type,
+            salary_min,
+            salary_max,
+            companies!inner(
               id,
-              title,
-              companies!inner(
-                id,
-                name
-              )
-            ),
-            user_profiles!inner(
-              id,
-              full_name,
-              email,
-              phone,
-              location
+              name,
+              logo_url
             )
-          `)
-          .eq('id', applicationId)
-          .single();
-          
-        if (appError) {
-          console.error('Error loading application with fallback:', appError);
-          return;
-        }
+          )
+        `)
+        .eq('id', applicationId)
+        .single();
         
-        // Get messages
-        const { data: messagesData } = await supabase
-          .from('application_messages')
-          .select('*')
-          .eq('application_id', applicationId)
-          .order('created_at', { ascending: false });
-          
-        // Get interviews
-        const { data: interviewsData } = await supabase
-          .from('interviews')
-          .select('*')
-          .eq('application_id', applicationId)
-          .order('scheduled_at', { ascending: false });
-        
-        // Format the data to match expected structure
-        const formattedData = {
-          ...appData,
-          full_name: appData.user_profiles?.full_name,
-          email: appData.user_profiles?.email,
-          phone: appData.user_profiles?.phone,
-          location: appData.user_profiles?.location,
-          jobTitle: appData.jobs?.title,
-          company: appData.jobs?.companies?.name,
-          job: {
-            title: appData.jobs?.title,
-            company: {
-              name: appData.jobs?.companies?.name
-            }
-          }
-        };
-        
-        setApplication(formattedData);
-        setMessages(messagesData || []);
-        setInterviews(interviewsData || []);
-        
-        // Set job data from the application data
-        setJob({
-          id: appData.jobs?.id,
-          title: appData.jobs?.title,
-          company: appData.jobs?.companies
-        });
-        
-      } else {
-        setApplication(rpcData);
-        setMessages(rpcData.messages || []);
-        setInterviews(rpcData.interviews || []);
-
-        // Load job details
-        if (rpcData?.job_id) {
-          const { data: jobData, error: jobError } = await db.getJobById(rpcData.job_id);
-          if (jobError) {
-            console.error('Error loading job:', jobError);
-          } else {
-            setJob(jobData);
-          }
-        }
+      if (appError) {
+        console.error('Error loading application:', appError);
+        return;
       }
+      
+      console.log('Application data loaded:', appData);
+      
+      // Get user profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, phone, location, avatar_url')
+        .eq('id', appData.user_id)
+        .single();
+      
+      if (profileError) {
+        console.error('Error loading profile:', profileError);
+      }
+      
+      console.log('Profile data loaded:', profileData);
+      
+      // Get messages
+      const { data: messagesData } = await supabase
+        .from('application_messages')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
+        
+      // Get interviews
+      const { data: interviewsData } = await supabase
+        .from('interviews')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('scheduled_at', { ascending: false });
+      
+      // Format the data with comprehensive fallbacks
+      const formattedData = {
+        ...appData,
+        full_name: profileData?.full_name || 'Unknown Applicant',
+        email: profileData?.email || 'No email provided',
+        phone: profileData?.phone || null,
+        location: profileData?.location || null,
+        avatar_url: profileData?.avatar_url || null,
+        jobTitle: appData.jobs?.title || 'Unknown Position',
+        company: appData.jobs?.companies?.name || 'Unknown Company',
+        job: {
+          id: appData.jobs?.id,
+          title: appData.jobs?.title || 'Unknown Position',
+          department: appData.jobs?.department,
+          location: appData.jobs?.location,
+          employment_type: appData.jobs?.employment_type,
+          company: {
+            id: appData.jobs?.companies?.id,
+            name: appData.jobs?.companies?.name || 'Unknown Company',
+            logo_url: appData.jobs?.companies?.logo_url
+          }
+        }
+      };
+      
+      console.log('Formatted application data:', formattedData);
+      
+      setApplication(formattedData);
+      setMessages(messagesData || []);
+      setInterviews(interviewsData || []);
+      
+      // Set job data
+      setJob({
+        id: appData.jobs?.id,
+        title: appData.jobs?.title || 'Unknown Position',
+        department: appData.jobs?.department,
+        location: appData.jobs?.location,
+        employment_type: appData.jobs?.employment_type,
+        company: appData.jobs?.companies
+      });
       
     } catch (error) {
       console.error('Error loading application details:', error);
@@ -298,21 +305,15 @@ const ApplicationDetails = () => {
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-text-primary">{application.full_name}</h1>
+                  <h1 className="text-2xl font-bold text-text-primary">
+                    {application?.full_name || 'Unknown Applicant'}
+                  </h1>
                   <p className="text-text-secondary mt-1">
-                    Application for {job?.title}
+                    Application for {job?.title || 'Unknown Position'}
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
                   <ApplicationStatusBadge status={application.status} />
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDetailsModal(true)}
-                    iconName="Eye"
-                    iconPosition="left"
-                  >
-                    View Details
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => navigate(`/employer/applications`)}
@@ -333,7 +334,7 @@ const ApplicationDetails = () => {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Icon name="Mail" size={16} className="text-text-secondary" />
-                      <span className="text-text-primary">{application.email}</span>
+                      <span className="text-text-primary">{application?.email || 'No email provided'}</span>
                     </div>
                     {application.phone && (
                       <div className="flex items-center space-x-3">
