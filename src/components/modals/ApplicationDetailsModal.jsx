@@ -97,6 +97,7 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
 
   const currentApplication = applicationData || application;
   const currentMessages = applicationMessages.length > 0 ? applicationMessages : messages;
+  const currentInterviews = applicationInterviews.length > 0 ? applicationInterviews : interviews;
   // Debug logging
   console.log('ApplicationDetailsModal props:', { isOpen, currentApplication, isEmployer });
   console.log('Modal should render:', isOpen && currentApplication);
