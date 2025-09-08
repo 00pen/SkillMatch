@@ -199,7 +199,30 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setSelectedApplication(application);
+                        // Create a safe copy of the application object to prevent serialization errors
+                        const safeApplication = {
+                          id: application?.id,
+                          jobId: application?.jobId,
+                          jobTitle: application?.jobTitle,
+                          company: application?.company,
+                          location: application?.location,
+                          positionType: application?.positionType,
+                          status: application?.status,
+                          appliedDate: application?.appliedDate,
+                          lastUpdated: application?.lastUpdated,
+                          salary: application?.salary,
+                          coverLetter: application?.coverLetter,
+                          resumeUrl: application?.resumeUrl,
+                          portfolioUrl: application?.portfolioUrl,
+                          salaryExpectation: application?.salaryExpectation,
+                          availableStartDate: application?.availableStartDate,
+                          notes: application?.notes,
+                          messages: application?.messages || [],
+                          interviews: application?.interviews || [],
+                          messageCount: application?.messageCount || 0,
+                          hasUnreadMessages: application?.hasUnreadMessages || false
+                        };
+                        setSelectedApplication(safeApplication);
                         setIsDetailsModalOpen(true);
                       }}
                       iconName="Eye"
@@ -275,7 +298,30 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSelectedApplication(application);
+                  // Create a safe copy of the application object to prevent serialization errors
+                  const safeApplication = {
+                    id: application?.id,
+                    jobId: application?.jobId,
+                    jobTitle: application?.jobTitle,
+                    company: application?.company,
+                    location: application?.location,
+                    positionType: application?.positionType,
+                    status: application?.status,
+                    appliedDate: application?.appliedDate,
+                    lastUpdated: application?.lastUpdated,
+                    salary: application?.salary,
+                    coverLetter: application?.coverLetter,
+                    resumeUrl: application?.resumeUrl,
+                    portfolioUrl: application?.portfolioUrl,
+                    salaryExpectation: application?.salaryExpectation,
+                    availableStartDate: application?.availableStartDate,
+                    notes: application?.notes,
+                    messages: application?.messages || [],
+                    interviews: application?.interviews || [],
+                    messageCount: application?.messageCount || 0,
+                    hasUnreadMessages: application?.hasUnreadMessages || false
+                  };
+                  setSelectedApplication(safeApplication);
                   setIsDetailsModalOpen(true);
                 }}
                 iconName="Eye"
