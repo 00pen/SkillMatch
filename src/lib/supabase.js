@@ -32,10 +32,12 @@ export const auth = {
   },
 
   signIn: async (email, password) => {
+    console.log('Attempting sign in with:', { email, passwordLength: password?.length });
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+    console.log('Sign in response:', { data: data?.user?.id, error });
     return { data, error };
   },
 

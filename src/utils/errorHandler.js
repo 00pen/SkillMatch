@@ -76,6 +76,12 @@ export const getErrorMessage = (error) => {
     if (error.message.includes('Invalid login credentials')) {
       return 'Invalid email or password. Please try again.';
     }
+    if (error.message.includes('Email not confirmed')) {
+      return 'Please check your email and click the confirmation link before signing in.';
+    }
+    if (error.message.includes('User not found')) {
+      return 'No account found with this email address.';
+    }
     if (error.message.includes('User already registered')) {
       return 'An account with this email already exists.';
     }
