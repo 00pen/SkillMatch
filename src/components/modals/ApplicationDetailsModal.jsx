@@ -137,41 +137,53 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
     );
   }
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex flex-col h-full">
+    <div 
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in"
+      onClick={handleOverlayClick}
+    >
+      <div className="flex items-center justify-center min-h-full p-4">
+        <div className="bg-card border border-border rounded-lg shadow-modal w-full max-w-4xl flex flex-col animate-scale-in max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between p-6 border-b border-border">
+            <div>
               <h2 className="text-xl font-semibold text-text-primary">Application Details</h2>
-              <button
-                onClick={onClose}
-                className="text-text-secondary hover:text-text-primary transition-colors"
-              >
-                <Icon name="X" size={24} />
-              </button>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div>
-                <h3 className="font-medium text-text-primary">{currentApplication.jobTitle || currentApplication.job?.title}</h3>
-                <p className="text-text-secondary">{
+              <p className="text-sm text-text-secondary mt-1">
+                {currentApplication.jobTitle || currentApplication.job?.title} at {
                   typeof currentApplication.company === 'string' 
                     ? currentApplication.company 
                     : currentApplication.company?.name || 
                       (currentApplication.job?.company ? currentApplication.job.company.name : 'Unknown Company')
-                }</p>
-              </div>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentApplication.status)}`}>
+                }
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              iconName="X"
+              iconSize={20}
+            />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Status Badge */}
+            <div className="p-6 border-b border-border">
+              <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentApplication.status)}`}>
                 {getStatusLabel(currentApplication.status)}
               </div>
             </div>
-          </div>
 
-          {/* Tabs */}
-          <div className="border-b border-border">
-            <nav className="flex space-x-8 px-6">
+            {/* Tabs */}
+            <div className="border-b border-border">
+              <nav className="flex space-x-8 px-6">
               {[
                 { id: 'details', label: 'Application Details', icon: 'FileText' },
                 { id: 'messages', label: 'Messages', icon: 'MessageSquare', count: currentMessages.length },
@@ -180,26 +192,28 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-primary text-primary'
-                      : 'border-transparent text-text-secondary hover:text-text-primary'
+                      : 'border-transparent text-text-secondary hover:text-text-primary hover:border-muted'
                   }`}
                 >
-                  <Icon name={tab.icon} size={16} />
-                  <span>{tab.label}</span>
-                  {tab.count > 0 && (
-                    <span className="bg-primary text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {tab.count}
-                    </span>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <Icon name={tab.icon} size={16} />
+                    <span>{tab.label}</span>
+                    {tab.count > 0 && (
+                      <span className="bg-muted text-text-secondary px-2 py-0.5 rounded-full text-xs">
+                        {tab.count}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </nav>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Tab Content */}
+          <div className="p-6">
             {activeTab === 'details' && (
               <div className="space-y-6">
                 {/* Contact Information (for employers) */}
@@ -413,12 +427,6 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
                 )}
               </div>
             )}
-          </div>
-
-          {/* Footer */}
-          <div className="p-6 border-t border-border">
-            <div className="flex justify-end">
-              <Button onClick={onClose}>Close</Button>
             </div>
           </div>
         </div>
