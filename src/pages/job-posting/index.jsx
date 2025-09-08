@@ -180,19 +180,24 @@ const JobPosting = () => {
       }
 
       const jobData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        job_type: formData.job_type,
+        experience_level: formData.experience_level,
+        salary_min: formData.salary_min ? parseInt(formData.salary_min) : null,
+        salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
+        salary_currency: formData.salary_currency,
+        is_remote: formData.is_remote,
+        application_deadline: formData.application_deadline || null,
+        education_requirements: formData.education_requirements || null,
         created_by: user.id,
         company_id: companyId,
         status: 'active',
-        application_count: 0,
-        view_count: 0,
-        posted_date: new Date().toISOString(),
-        salary_min: formData.salary_min ? parseInt(formData.salary_min) : null,
-        salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
         // Convert text fields to arrays for database compatibility
-        responsibilities: formData.responsibilities ? [formData.responsibilities] : [],
-        requirements: formData.requirements ? [formData.requirements] : [],
-        benefits: formData.benefits ? [formData.benefits] : []
+        responsibilities: formData.responsibilities ? formData.responsibilities.split('\n').filter(r => r.trim()) : [],
+        requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : [],
+        benefits: formData.benefits ? formData.benefits.split('\n').filter(b => b.trim()) : []
       };
 
       const { data, error } = await db.createJob(jobData);
