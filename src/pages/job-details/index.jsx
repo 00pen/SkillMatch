@@ -22,7 +22,7 @@ const JobDetails = () => {
   const { user } = useAuth();
   
   // Get job ID from URL params or query params for backward compatibility
-  const searchParams = new URLSearchParams(location.search);
+  const searchParams = new URLSearchParams(window.location.search);
   const jobId = id || searchParams.get('id');
   
   // Redirect if no job ID is provided

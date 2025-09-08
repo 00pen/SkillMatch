@@ -39,50 +39,50 @@ const EmployerDashboard = () => {
     }
   }, [user, userProfile, navigate]);
 
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        // Load company jobs - only if user has a company_id
-        if (userProfile?.company_id) {
-          const { data: jobsData, error: jobsError } = await db.getCompanyJobs(userProfile.company_id);
-          if (!jobsError && jobsData) {
-            setJobs(jobsData);
-          }
-        } else {
-          // If no company_id, set empty jobs array
-          setJobs([]);
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      // Load company jobs - only if user has a company_id
+      if (userProfile?.company_id) {
+        const { data: jobsData, error: jobsError } = await db.getCompanyJobs(userProfile.company_id);
+        if (!jobsError && jobsData) {
+          setJobs(jobsData);
         }
-        
-        // Load job statistics
-        const { data: statsData, error: statsError } = await db.getJobStats(user.id);
-        if (!statsError && statsData) {
-          setStats(statsData);
-        }
-
-        // Load company profile if user has company_id
-        if (userProfile?.company_id) {
-          const { data: companyData, error: companyError } = await db.getCompanyById(userProfile.company_id);
-          if (!companyError && companyData) {
-            setCompanyProfile(companyData);
-          }
-        }
-
-        // Load recent activities
-        const { data: activitiesData, error: activitiesError } = await db.getRecentActivities(user.id);
-        if (!activitiesError && activitiesData) {
-          setActivities(activitiesData);
-        } else {
-          // Use default activities as fallback
-          setActivities(defaultActivities);
-        }
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        setIsLoading(false);
+      } else {
+        // If no company_id, set empty jobs array
+        setJobs([]);
       }
-    };
+      
+      // Load job statistics
+      const { data: statsData, error: statsError } = await db.getJobStats(user.id);
+      if (!statsError && statsData) {
+        setStats(statsData);
+      }
 
+      // Load company profile if user has company_id
+      if (userProfile?.company_id) {
+        const { data: companyData, error: companyError } = await db.getCompanyById(userProfile.company_id);
+        if (!companyError && companyData) {
+          setCompanyProfile(companyData);
+        }
+      }
+
+      // Load recent activities
+      const { data: activitiesData, error: activitiesError } = await db.getRecentActivities(user.id);
+      if (!activitiesError && activitiesData) {
+        setActivities(activitiesData);
+      } else {
+        // Use default activities as fallback
+        setActivities(defaultActivities);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (user && userProfile) {
       loadDashboardData();
     }

@@ -459,7 +459,7 @@ export const db = {
       .from('applications')
       .select(`
         *,
-        job:jobs(id, title, company_name, location),
+        job:jobs(id, title, location),
         applicant:user_profiles(full_name, email, phone, location)
       `)
       .eq('id', applicationId)
