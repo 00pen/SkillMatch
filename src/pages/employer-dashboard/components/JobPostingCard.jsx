@@ -44,7 +44,12 @@ const JobPostingCard = ({ job, onEdit, onViewApplicants, onDelete }) => {
   };
 
   const handleViewApplicants = () => {
-    navigate(`/employer/job/${job?.id}/applicants`);
+    if (!job?.id) {
+      console.error('Job ID is missing:', job);
+      return;
+    }
+    console.log('Navigating to applicants for job:', job.id);
+    navigate(`/employer/job/${job.id}/applicants`);
   };
 
   return (

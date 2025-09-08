@@ -10,6 +10,11 @@ import Icon from '../../components/AppIcon';
 const JobApplicants = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  
+  // Debug logging
+  console.log('JobApplicants - All URL params:', useParams());
+  console.log('JobApplicants - jobId extracted:', jobId);
+  console.log('JobApplicants - current URL:', window.location.pathname);
   const { user, userProfile } = useAuth();
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
@@ -41,10 +46,20 @@ const JobApplicants = () => {
     try {
       setIsLoading(true);
       
+      // Validate jobId first
+      if (!jobId || jobId === 'undefined' || jobId === 'null') {
+        console.error('Invalid job ID:', jobId);
+        navigate('/employer-dashboard');
+        return;
+      }
+      
       // Load job details
       const { data: jobData, error: jobError } = await db.getJobById(jobId);
       if (jobError) {
         console.error('Error loading job:', jobError);
+        if (jobError.message === 'Invalid job ID provided') {
+          navigate('/employer-dashboard');
+        }
         return;
       }
       setJob(jobData);
