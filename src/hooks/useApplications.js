@@ -110,10 +110,15 @@ export const useApplications = () => {
       
       if (error) throw error;
       
-      // Update local state
+      // Update local state with new timestamp
+      const updatedAt = new Date().toISOString();
       setApplications(prev => 
         prev.map(app => 
-          app.id === applicationId ? { ...app, status, lastUpdated: data.updated_at } : app
+          app.id === applicationId ? { 
+            ...app, 
+            status, 
+            lastUpdated: updatedAt 
+          } : app
         )
       );
       
@@ -124,11 +129,48 @@ export const useApplications = () => {
     }
   };
 
+  // Function to refresh applications data
+  const refreshApplications = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error: fetchError } = await db.getUserApplications(user.id);
+      
+      if (fetchError) throw fetchError;
+      
+      const transformedApplications = data?.map(app => ({
+        id: app.id,
+        jobId: app.job_id,
+        jobTitle: app.jobs?.title,
+        company: app.jobs?.companies?.name,
+        location: app.jobs?.location,
+        positionType: app.jobs?.job_type,
+        status: app.status,
+        appliedDate: app.created_at,
+        lastUpdated: app.updated_at,
+        salary: app.jobs?.salary_min && app.jobs?.salary_max 
+          ? `$${app.jobs.salary_min.toLocaleString()} - $${app.jobs.salary_max.toLocaleString()}`
+          : 'Not specified',
+        coverLetter: app.cover_letter,
+        resumeUrl: app.resume_url,
+        portfolioUrl: app.portfolio_url,
+        salaryExpectation: app.salary_expectation,
+        availableStartDate: app.available_start_date,
+        notes: app.notes
+      })) || [];
+      
+      setApplications(transformedApplications);
+    } catch (err) {
+      console.error('Error refreshing applications:', err);
+    }
+  };
+
   return {
     applications,
     isLoading,
     error,
     createApplication,
-    updateApplicationStatus
+    updateApplicationStatus,
+    refreshApplications
   };
 };

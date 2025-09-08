@@ -18,7 +18,7 @@ import Icon from '../../components/AppIcon';
 const JobSeekerDashboard = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
-  const { applications } = useApplications();
+  const { applications, refreshApplications } = useApplications();
   const { savedJobs } = useSavedJobs();
   const { jobs: recommendedJobs, isLoading: jobsLoading } = useJobs({ 
     experienceLevel: userProfile?.role === 'job-seeker' ? 'mid' : undefined 
@@ -64,14 +64,47 @@ const JobSeekerDashboard = () => {
     matchPercentage: Math.floor(Math.random() * 20) + 80 // Mock match percentage
   })) || [];
   
-  // Mock recent activities based on real applications
-  const mockActivities = applications?.slice(0, 5)?.map((app, index) => ({
-    id: index + 1,
-    type: "application",
-    message: `You applied for ${app.jobTitle} at ${app.company}`,
-    timestamp: app.appliedDate,
-    isNew: new Date(app.appliedDate) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-  })) || [];
+  // Generate real activities based on applications with status updates
+  const generateActivities = () => {
+    const activities = [];
+    
+    applications?.forEach((app, index) => {
+      // Add application activity
+      activities.push({
+        id: `app-${app.id}`,
+        type: "application",
+        message: `You applied for ${app.jobTitle} at ${app.company}`,
+        timestamp: app.appliedDate,
+        isNew: new Date(app.appliedDate) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      });
+      
+      // Add status update activity if status changed recently
+      if (app.status !== 'applied' && app.lastUpdated !== app.appliedDate) {
+        const statusMessages = {
+          'under-review': 'is now under review',
+          'interview': 'has moved to interview stage',
+          'offer': 'received an offer',
+          'hired': 'congratulations, you were hired',
+          'rejected': 'application was not successful'
+        };
+        
+        activities.push({
+          id: `status-${app.id}`,
+          type: "status_update",
+          message: `Your application for ${app.jobTitle} at ${app.company} ${statusMessages[app.status] || 'status was updated'}`,
+          timestamp: app.lastUpdated,
+          isNew: new Date(app.lastUpdated) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+        });
+      }
+    });
+    
+    // Sort by timestamp (newest first) and return top 5
+    return activities
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 5);
+  };
+  
+  const recentActivities = generateActivities();
 
   const getGreeting = () => {
     const hour = currentTime?.getHours();
@@ -161,7 +194,7 @@ const JobSeekerDashboard = () => {
 
           {/* Recent Activity Section */}
           <div className="mt-8">
-            <RecentActivityFeed activities={mockActivities} />
+            <RecentActivityFeed activities={recentActivities} />
           </div>
 
           {/* Quick Actions Footer */}
