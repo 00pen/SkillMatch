@@ -54,7 +54,6 @@ const ApplicationDetails = () => {
           jobs!inner(
             id,
             title,
-            department,
             location,
             employment_type,
             salary_min,
@@ -116,7 +115,6 @@ const ApplicationDetails = () => {
         job: {
           id: appData.jobs?.id,
           title: appData.jobs?.title || 'Unknown Position',
-          department: appData.jobs?.department,
           location: appData.jobs?.location,
           employment_type: appData.jobs?.employment_type,
           company: {
@@ -137,7 +135,6 @@ const ApplicationDetails = () => {
       setJob({
         id: appData.jobs?.id,
         title: appData.jobs?.title || 'Unknown Position',
-        department: appData.jobs?.department,
         location: appData.jobs?.location,
         employment_type: appData.jobs?.employment_type,
         company: appData.jobs?.companies
