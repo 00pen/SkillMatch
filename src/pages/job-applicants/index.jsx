@@ -8,13 +8,16 @@ import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 
 const JobApplicants = () => {
-  const { jobId } = useParams();
+  const params = useParams();
   const navigate = useNavigate();
   
   // Debug logging
-  console.log('JobApplicants - All URL params:', useParams());
-  console.log('JobApplicants - jobId extracted:', jobId);
+  console.log('JobApplicants - All URL params:', params);
   console.log('JobApplicants - current URL:', window.location.pathname);
+  
+  // Extract jobId from params - try different possible parameter names
+  const jobId = params.jobId || params.id || params.jobid;
+  console.log('JobApplicants - jobId extracted:', jobId);
   const { user, userProfile } = useAuth();
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
