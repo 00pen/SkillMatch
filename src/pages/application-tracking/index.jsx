@@ -72,16 +72,28 @@ const ApplicationTracking = () => {
 
   const handleStatusUpdate = async (applicationId, newStatus) => {
     try {
+      // Job seekers can only withdraw applications in early stages
+      if (newStatus === 'withdrawn') {
+        const application = applications.find(app => app.id === applicationId);
+        if (!['pending', 'reviewed'].includes(application?.status)) {
+          alert('You can only withdraw applications that are pending or under review.');
+          return;
+        }
+      }
       await updateApplicationStatus(applicationId, newStatus);
     } catch (error) {
       console.error('Error updating application status:', error);
     }
   };
 
-  const handleWithdrawApplication = (applicationId) => {
+  const handleWithdrawApplication = async (applicationId) => {
     if (window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
-      // In a real app, this would call an API to withdraw the application
-      setFilteredApplications(filteredApplications?.filter(app => app?.id !== applicationId));
+      try {
+        await handleStatusUpdate(applicationId, 'withdrawn');
+      } catch (error) {
+        console.error('Error withdrawing application:', error);
+        alert('Failed to withdraw application. Please try again.');
+      }
     }
   };
 

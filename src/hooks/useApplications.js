@@ -20,7 +20,7 @@ export const useApplications = () => {
       setError(null);
       
       try {
-        const { data, error: fetchError } = await db.getUserApplications(user.id);
+        const { data, error: fetchError } = await db.getUserApplicationsWithDetails(user.id);
         
         if (fetchError) {
           throw fetchError;
@@ -45,7 +45,11 @@ export const useApplications = () => {
           portfolioUrl: app.portfolio_url,
           salaryExpectation: app.salary_expectation,
           availableStartDate: app.available_start_date,
-          notes: app.notes
+          notes: app.notes,
+          messages: app.messages || [],
+          interviews: app.interviews || [],
+          messageCount: app.messages?.length || 0,
+          hasUnreadMessages: app.messages?.some(msg => !msg.read_by_candidate) || false
         })) || [];
         
         setApplications(transformedApplications);
@@ -106,21 +110,20 @@ export const useApplications = () => {
 
   const updateApplicationStatus = async (applicationId, status) => {
     try {
+      // For job seekers, only allow withdrawal in early stages
+      if (status === 'withdrawn') {
+        const application = applications.find(app => app.id === applicationId);
+        if (!['pending', 'reviewed'].includes(application?.status)) {
+          throw new Error('You can only withdraw applications that are pending or under review.');
+        }
+      }
+      
       const { data, error } = await db.updateApplicationStatus(applicationId, status);
       
       if (error) throw error;
       
-      // Update local state with new timestamp
-      const updatedAt = new Date().toISOString();
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === applicationId ? { 
-            ...app, 
-            status, 
-            lastUpdated: updatedAt 
-          } : app
-        )
-      );
+      // Refresh applications to get updated data with messages
+      await refreshApplications();
       
       return { data, error: null };
     } catch (err) {
@@ -156,12 +159,37 @@ export const useApplications = () => {
         portfolioUrl: app.portfolio_url,
         salaryExpectation: app.salary_expectation,
         availableStartDate: app.available_start_date,
-        notes: app.notes
+        notes: app.notes,
+        messages: app.messages || [],
+        interviews: app.interviews || [],
+        messageCount: app.messages?.length || 0,
+        hasUnreadMessages: app.messages?.some(msg => !msg.read_by_candidate) || false
       })) || [];
       
       setApplications(transformedApplications);
     } catch (err) {
       console.error('Error refreshing applications:', err);
+    }
+  };
+
+  // Mark messages as read
+  const markMessagesAsRead = async (applicationId) => {
+    try {
+      const { error } = await db.markApplicationMessagesAsRead(applicationId, user.id);
+      if (error) throw error;
+      
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId ? {
+            ...app,
+            hasUnreadMessages: false,
+            messages: app.messages.map(msg => ({ ...msg, read_by_candidate: true }))
+          } : app
+        )
+      );
+    } catch (err) {
+      console.error('Error marking messages as read:', err);
     }
   };
 
@@ -171,6 +199,7 @@ export const useApplications = () => {
     error,
     createApplication,
     updateApplicationStatus,
-    refreshApplications
+    refreshApplications,
+    markMessagesAsRead
   };
 };

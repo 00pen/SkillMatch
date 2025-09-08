@@ -79,13 +79,15 @@ const JobSeekerDashboard = () => {
       });
       
       // Add status update activity if status changed recently
-      if (app.status !== 'applied' && app.lastUpdated !== app.appliedDate) {
+      if (app.status !== 'pending' && app.lastUpdated !== app.appliedDate) {
         const statusMessages = {
-          'under-review': 'is now under review',
-          'interview': 'has moved to interview stage',
-          'offer': 'received an offer',
-          'hired': 'congratulations, you were hired',
-          'rejected': 'application was not successful'
+          'reviewed': 'is now under review',
+          'interview_scheduled': 'has an interview scheduled',
+          'interviewed': 'interview completed',
+          'offer_extended': 'received an offer - congratulations!',
+          'hired': 'congratulations, you were hired!',
+          'rejected': 'application was not successful',
+          'withdrawn': 'was withdrawn'
         };
         
         activities.push({

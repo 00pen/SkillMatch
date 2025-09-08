@@ -517,3 +517,96 @@ BEGIN
   RETURN v_result;
 END;
 $$;
+
+-- Function to get user applications with detailed information
+CREATE OR REPLACE FUNCTION get_user_applications_with_details(p_user_id uuid)
+RETURNS TABLE (
+  id uuid,
+  user_id uuid,
+  job_id uuid,
+  status text,
+  cover_letter text,
+  resume_url text,
+  full_name text,
+  email text,
+  phone text,
+  location text,
+  interview_scheduled_at timestamptz,
+  interview_location text,
+  interview_type text,
+  interview_notes text,
+  rejection_reason text,
+  offer_details jsonb,
+  hired_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  job_title text,
+  job_location text,
+  job_type text,
+  salary_min integer,
+  salary_max integer,
+  company_name text,
+  company_logo_url text,
+  messages json,
+  interviews json,
+  unread_messages_count integer
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    a.id,
+    a.user_id,
+    a.job_id,
+    a.status,
+    a.cover_letter,
+    a.resume_url,
+    a.full_name,
+    a.email,
+    a.phone,
+    a.location,
+    a.interview_scheduled_at,
+    a.interview_location,
+    a.interview_type,
+    a.interview_notes,
+    a.rejection_reason,
+    a.offer_details,
+    a.hired_at,
+    a.created_at,
+    a.updated_at,
+    j.title as job_title,
+    j.location as job_location,
+    j.job_type,
+    j.salary_min,
+    j.salary_max,
+    c.name as company_name,
+    c.logo_url as company_logo_url,
+    COALESCE(
+      (SELECT json_agg(row_to_json(m.*) ORDER BY m.created_at DESC)
+       FROM application_messages m 
+       WHERE m.application_id = a.id), 
+      '[]'::json
+    ) as messages,
+    COALESCE(
+      (SELECT json_agg(row_to_json(i.*) ORDER BY i.scheduled_at DESC)
+       FROM interviews i 
+       WHERE i.application_id = a.id), 
+      '[]'::json
+    ) as interviews,
+    COALESCE(
+      (SELECT COUNT(*)::integer
+       FROM application_messages m 
+       WHERE m.application_id = a.id 
+       AND m.sender_type = 'employer' 
+       AND m.read_at IS NULL), 
+      0
+    ) as unread_messages_count
+  FROM applications a
+  LEFT JOIN jobs j ON a.job_id = j.id
+  LEFT JOIN companies c ON j.company_id = c.id
+  WHERE a.user_id = p_user_id
+  ORDER BY a.created_at DESC;
+END;
+$$;

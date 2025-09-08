@@ -431,7 +431,7 @@ const EmployerApplicationManagement = () => {
           setSelectedApplication(null);
         }}
         application={selectedApplication}
-        onStatusUpdated={onStatusUpdated}
+        onStatusUpdate={onStatusUpdated}
       />
 
       <InterviewScheduleModal
@@ -441,7 +441,7 @@ const EmployerApplicationManagement = () => {
           setSelectedApplication(null);
         }}
         application={selectedApplication}
-        onScheduled={onInterviewScheduled}
+        onScheduleInterview={onInterviewScheduled}
       />
 
       <ApplicationDetailsModal
@@ -450,7 +450,8 @@ const EmployerApplicationManagement = () => {
           setIsDetailsModalOpen(false);
           setSelectedApplication(null);
         }}
-        applicationId={selectedApplication?.id}
+        application={selectedApplication}
+        isEmployer={true}
       />
     </div>
   );

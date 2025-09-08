@@ -3,27 +3,39 @@ import { db } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 import Icon from '../AppIcon';
+import ApplicationProgressIndicator from '../ApplicationProgressIndicator';
+import ApplicationStatusBadge from '../ApplicationStatusBadge';
 
-const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
-  const { user } = useAuth();
-  const [applicationDetails, setApplicationDetails] = useState(null);
+const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], interviews = [], isEmployer = false }) => {
+  const [applicationData, setApplicationData] = useState(null);
+  const [applicationMessages, setApplicationMessages] = useState([]);
+  const [applicationInterviews, setApplicationInterviews] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
-    if (isOpen && applicationId) {
-      fetchApplicationDetails();
+    if (isOpen && application?.id && !isEmployer) {
+      loadApplicationDetails();
+    } else if (application) {
+      setApplicationData(application);
+      setApplicationMessages(messages);
+      setApplicationInterviews(interviews);
     }
-  }, [isOpen, applicationId]);
+  }, [isOpen, application, isEmployer]);
 
-  const fetchApplicationDetails = async () => {
-    setIsLoading(true);
+  const loadApplicationDetails = async () => {
     try {
-      const { data, error } = await db.getApplicationDetails(applicationId);
-      if (error) throw error;
-      setApplicationDetails(data);
+      setIsLoading(true);
+      const { data, error } = await db.getApplicationDetails(application.id);
+      if (error) {
+        console.error('Error loading application details:', error);
+        return;
+      }
+      setApplicationData(data);
+      setApplicationMessages(data.messages || []);
+      setApplicationInterviews(data.interviews || []);
     } catch (error) {
-      console.error('Error fetching application details:', error);
+      console.error('Error loading application details:', error);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +93,11 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
     }
   };
 
-  if (!isOpen) return null;
+  if (!application && !applicationData) return null;
+
+  const currentApplication = applicationData || application;
+  const currentMessages = applicationMessages.length > 0 ? applicationMessages : messages;
+  const currentInterviews = applicationInterviews.length > 0 ? applicationInterviews : interviews;
 
   if (isLoading) {
     return (
@@ -96,20 +112,22 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
     );
   }
 
-  if (!applicationDetails) {
+  if (!currentApplication) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-card rounded-lg shadow-xl p-8 text-center">
           <Icon name="AlertCircle" size={48} className="mx-auto text-error mb-4" />
-          <h3 className="text-lg font-medium text-text-primary mb-2">Error Loading Details</h3>
-          <p className="text-text-secondary mb-4">Could not load application details.</p>
+          <h2 className="text-xl font-semibold text-text-primary">
+            {isEmployer ? 'Application Details' : 'My Application'}
+          </h2>
+          <p className="text-text-secondary mt-1">
+            {currentApplication.jobTitle || currentApplication.job?.title} at {currentApplication.company || currentApplication.job?.company?.name}
+          </p>
           <Button onClick={onClose}>Close</Button>
         </div>
       </div>
     );
   }
-
-  const { application, job, company, messages, interviews } = applicationDetails;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -129,11 +147,11 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
             
             <div className="flex items-center space-x-4">
               <div>
-                <h3 className="font-medium text-text-primary">{job?.title}</h3>
-                <p className="text-text-secondary">{company?.name}</p>
+                <h3 className="font-medium text-text-primary">{currentApplication.jobTitle || currentApplication.job?.title}</h3>
+                <p className="text-text-secondary">{currentApplication.company || currentApplication.job?.company?.name}</p>
               </div>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application?.status)}`}>
-                {getStatusLabel(application?.status)}
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentApplication.status)}`}>
+                {getStatusLabel(currentApplication.status)}
               </div>
             </div>
           </div>
@@ -143,8 +161,8 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
             <nav className="flex space-x-8 px-6">
               {[
                 { id: 'details', label: 'Application Details', icon: 'FileText' },
-                { id: 'messages', label: 'Messages', icon: 'MessageSquare', count: messages?.length },
-                { id: 'interviews', label: 'Interviews', icon: 'Calendar', count: interviews?.length }
+                { id: 'messages', label: 'Messages', icon: 'MessageSquare', count: currentMessages.length },
+                { id: 'interviews', label: 'Interviews', icon: 'Calendar', count: currentInterviews.length }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -171,56 +189,93 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
           <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'details' && (
               <div className="space-y-6">
+                {/* Contact Information (for employers) */}
+                {isEmployer && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center">
+                      <Icon name="User" size={20} className="mr-2" />
+                      Candidate Information
+                    </h3>
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-text-secondary">Name:</span>
+                          <p className="text-text-primary">{currentApplication.candidateName || currentApplication.full_name}</p>
+                        </div>
+                        <div>
+                          <span className="text-text-secondary">Email:</span>
+                          <p className="text-text-primary">{currentApplication.email}</p>
+                        </div>
+                        {currentApplication.phone && (
+                          <div>
+                            <span className="text-text-secondary">Phone:</span>
+                            <p className="text-text-primary">{currentApplication.phone}</p>
+                          </div>
+                        )}
+                        {currentApplication.location && (
+                          <div>
+                            <span className="text-text-secondary">Location:</span>
+                            <p className="text-text-primary">{currentApplication.location}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-medium text-text-primary mb-3">Candidate Information</h4>
+                    <h4 className="font-medium text-text-primary mb-3">Application Info</h4>
                     <div className="space-y-2 text-sm">
-                      <div><span className="text-text-secondary">Name:</span> <span className="text-text-primary">{application?.full_name}</span></div>
-                      <div><span className="text-text-secondary">Email:</span> <span className="text-text-primary">{application?.email}</span></div>
-                      {application?.phone && (
-                        <div><span className="text-text-secondary">Phone:</span> <span className="text-text-primary">{application?.phone}</span></div>
+                      <div><span className="text-text-secondary">Applied:</span> <span className="text-text-primary">{formatDate(currentApplication.created_at)}</span></div>
+                      <div><span className="text-text-secondary">Last Updated:</span> <span className="text-text-primary">{formatDate(currentApplication.updated_at)}</span></div>
+                      {currentApplication.salary_expectation && (
+                        <div><span className="text-text-secondary">Salary Expectation:</span> <span className="text-text-primary">${currentApplication.salary_expectation?.toLocaleString()}</span></div>
                       )}
-                      {application?.location && (
-                        <div><span className="text-text-secondary">Location:</span> <span className="text-text-primary">{application?.location}</span></div>
+                      {currentApplication.available_start_date && (
+                        <div><span className="text-text-secondary">Available Start:</span> <span className="text-text-primary">{new Date(currentApplication.available_start_date).toLocaleDateString()}</span></div>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-text-primary mb-3">Application Info</h4>
+                    <h4 className="font-medium text-text-primary mb-3">Job Information</h4>
                     <div className="space-y-2 text-sm">
-                      <div><span className="text-text-secondary">Applied:</span> <span className="text-text-primary">{formatDate(application?.created_at)}</span></div>
-                      <div><span className="text-text-secondary">Last Updated:</span> <span className="text-text-primary">{formatDate(application?.updated_at)}</span></div>
-                      {application?.salary_expectation && (
-                        <div><span className="text-text-secondary">Salary Expectation:</span> <span className="text-text-primary">${application?.salary_expectation?.toLocaleString()}</span></div>
-                      )}
-                      {application?.available_start_date && (
-                        <div><span className="text-text-secondary">Available Start:</span> <span className="text-text-primary">{new Date(application?.available_start_date).toLocaleDateString()}</span></div>
-                      )}
+                      <div><span className="text-text-secondary">Job Title:</span> <span className="text-text-primary">{currentApplication.jobTitle || currentApplication.job?.title}</span></div>
+                      <div><span className="text-text-secondary">Company:</span> <span className="text-text-primary">{currentApplication.company || currentApplication.job?.company?.name}</span></div>
                     </div>
                   </div>
                 </div>
 
                 {/* Cover Letter */}
-                {application?.cover_letter && (
+                {currentApplication.cover_letter && (
                   <div>
                     <h4 className="font-medium text-text-primary mb-3">Cover Letter</h4>
                     <div className="bg-background p-4 rounded-lg border border-border">
-                      <p className="text-text-primary whitespace-pre-wrap">{application?.cover_letter}</p>
+                      <p className="text-text-primary whitespace-pre-wrap">{currentApplication.cover_letter}</p>
                     </div>
                   </div>
                 )}
+
+                {/* Application Progress */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center">
+                    <Icon name="TrendingUp" size={20} className="mr-2" />
+                    Application Progress
+                  </h3>
+                  <ApplicationProgressIndicator currentStatus={currentApplication.status} />
+                </div>
 
                 {/* Files */}
                 <div>
                   <h4 className="font-medium text-text-primary mb-3">Attachments</h4>
                   <div className="space-y-2">
-                    {application?.resume_url && (
+                    {currentApplication.resume_url && (
                       <div className="flex items-center space-x-2">
                         <Icon name="FileText" size={16} className="text-text-secondary" />
                         <a
-                          href={application?.resume_url}
+                          href={currentApplication.resume_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
@@ -229,11 +284,11 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
                         </a>
                       </div>
                     )}
-                    {application?.portfolio_url && (
+                    {currentApplication.portfolio_url && (
                       <div className="flex items-center space-x-2">
                         <Icon name="ExternalLink" size={16} className="text-text-secondary" />
                         <a
-                          href={application?.portfolio_url}
+                          href={currentApplication.portfolio_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
@@ -246,11 +301,11 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
                 </div>
 
                 {/* Notes */}
-                {application?.notes && (
+                {currentApplication.notes && (
                   <div>
                     <h4 className="font-medium text-text-primary mb-3">Additional Notes</h4>
                     <div className="bg-background p-4 rounded-lg border border-border">
-                      <p className="text-text-primary whitespace-pre-wrap">{application?.notes}</p>
+                      <p className="text-text-primary whitespace-pre-wrap">{currentApplication.notes}</p>
                     </div>
                   </div>
                 )}
@@ -259,8 +314,8 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
 
             {activeTab === 'messages' && (
               <div className="space-y-4">
-                {messages && messages.length > 0 ? (
-                  messages.map((message) => (
+                {currentMessages.length > 0 ? (
+                  currentMessages.map((message) => (
                     <div key={message.id} className="bg-background p-4 rounded-lg border border-border">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center space-x-2">
@@ -295,20 +350,18 @@ const ApplicationDetailsModal = ({ isOpen, onClose, applicationId }) => {
 
             {activeTab === 'interviews' && (
               <div className="space-y-4">
-                {interviews && interviews.length > 0 ? (
-                  interviews.map((interview) => (
+                {currentInterviews.length > 0 ? (
+                  currentInterviews.map((interview) => (
                     <div key={interview.id} className="bg-background p-4 rounded-lg border border-border">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h5 className="font-medium text-text-primary">
-                            {interview.interview_type === 'video' ? 'Video Interview' :
-                             interview.interview_type === 'phone' ? 'Phone Interview' :
-                             'In-Person Interview'}
-                          </h5>
-                          <p className="text-text-secondary text-sm">
-                            {formatDate(interview.scheduled_at)}
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between mb-6">
+                        <h5 className="font-medium text-text-primary">
+                          {interview.interview_type === 'video' ? 'Video Interview' :
+                           interview.interview_type === 'phone' ? 'Phone Interview' :
+                           'In-Person Interview'}
+                        </h5>
+                        <p className="text-text-secondary text-sm">
+                          {formatDate(interview.scheduled_at)}
+                        </p>
                         <div className={`px-2 py-1 rounded text-xs font-medium ${
                           interview.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
                           interview.status === 'completed' ? 'bg-green-100 text-green-800' :

@@ -335,7 +335,8 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
           setIsDetailsModalOpen(false);
           setSelectedApplication(null);
         }}
-        applicationId={selectedApplication?.id}
+        application={selectedApplication}
+        isEmployer={false}
       />
     </div>
   );

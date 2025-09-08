@@ -6,6 +6,10 @@ import RoleAdaptiveNavbar from '../../components/ui/RoleAdaptiveNavbar';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
+import ApplicationStatusModal from '../../components/modals/ApplicationStatusModal';
+import InterviewScheduleModal from '../../components/modals/InterviewScheduleModal';
+import ApplicationDetailsModal from '../../components/modals/ApplicationDetailsModal';
+import ApplicationStatusBadge from '../application-tracking/components/ApplicationStatusBadge';
 
 const ApplicationDetails = () => {
   const { applicationId } = useParams();
@@ -15,14 +19,20 @@ const ApplicationDetails = () => {
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [interviews, setInterviews] = useState([]);
 
   const statusOptions = [
-    { value: 'applied', label: 'New Application', color: 'bg-blue-100 text-blue-800' },
-    { value: 'under-review', label: 'Under Review', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'interview', label: 'Interview Scheduled', color: 'bg-purple-100 text-purple-800' },
-    { value: 'offer', label: 'Offer Extended', color: 'bg-green-100 text-green-800' },
-    { value: 'hired', label: 'Hired', color: 'bg-success/10 text-success' },
-    { value: 'rejected', label: 'Rejected', color: 'bg-error/10 text-error' }
+    { value: 'pending', label: 'Pending Review' },
+    { value: 'reviewed', label: 'Under Review' },
+    { value: 'interview_scheduled', label: 'Interview Scheduled' },
+    { value: 'interviewed', label: 'Interviewed' },
+    { value: 'offer_extended', label: 'Offer Extended' },
+    { value: 'hired', label: 'Hired' },
+    { value: 'rejected', label: 'Rejected' }
   ];
 
   useEffect(() => {
@@ -33,13 +43,15 @@ const ApplicationDetails = () => {
     try {
       setIsLoading(true);
       
-      // Load application details
-      const { data: appData, error: appError } = await db.getApplicationById(applicationId);
+      // Load enhanced application details with messages and interviews
+      const { data: appData, error: appError } = await db.getApplicationDetails(applicationId);
       if (appError) {
         console.error('Error loading application:', appError);
         return;
       }
       setApplication(appData);
+      setMessages(appData.messages || []);
+      setInterviews(appData.interviews || []);
 
       // Load job details
       if (appData?.job_id) {
@@ -58,16 +70,23 @@ const ApplicationDetails = () => {
     }
   };
 
-  const handleStatusUpdate = async (newStatus) => {
+  const handleStatusUpdate = async (statusData) => {
     try {
       setIsUpdatingStatus(true);
-      const { error } = await db.updateApplicationStatus(applicationId, newStatus);
+      const { error } = await db.updateApplicationStatusWithMessage(
+        applicationId,
+        statusData.status,
+        user.id,
+        statusData
+      );
       if (error) {
         console.error('Error updating status:', error);
         return;
       }
       
-      setApplication(prev => ({ ...prev, status: newStatus }));
+      // Reload application details to get updated data
+      await loadApplicationDetails();
+      setShowStatusModal(false);
     } catch (error) {
       console.error('Error updating application status:', error);
     } finally {
@@ -75,8 +94,60 @@ const ApplicationDetails = () => {
     }
   };
 
+  const handleInterviewSchedule = async (interviewData) => {
+    try {
+      setIsUpdatingStatus(true);
+      const { error } = await db.updateApplicationStatusWithMessage(
+        applicationId,
+        'interview_scheduled',
+        user.id,
+        {
+          messageSubject: 'Interview Scheduled',
+          messageContent: interviewData.messageContent,
+          templateName: interviewData.templateName,
+          interviewDate: interviewData.interviewDate,
+          interviewType: interviewData.interviewType,
+          interviewLocation: interviewData.interviewLocation
+        }
+      );
+      if (error) {
+        console.error('Error scheduling interview:', error);
+        return;
+      }
+      
+      // Reload application details to get updated data
+      await loadApplicationDetails();
+      setShowInterviewModal(false);
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const getStatusInfo = (status) => {
     return statusOptions.find(opt => opt.value === status) || statusOptions[0];
+  };
+
+  const canWithdraw = (status) => {
+    return ['pending', 'reviewed'].includes(status);
+  };
+
+  const getNextActions = (status) => {
+    switch (status) {
+      case 'pending':
+        return ['reviewed', 'rejected'];
+      case 'reviewed':
+        return ['interview_scheduled', 'rejected'];
+      case 'interview_scheduled':
+        return ['interviewed', 'rejected'];
+      case 'interviewed':
+        return ['offer_extended', 'rejected'];
+      case 'offer_extended':
+        return ['hired', 'rejected'];
+      default:
+        return [];
+    }
   };
 
   const handleDownloadResume = () => {
@@ -160,16 +231,22 @@ const ApplicationDetails = () => {
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
-                    {statusInfo.label}
-                  </span>
+                  <ApplicationStatusBadge status={application.status} />
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/employer/job/${job?.id}/applicants`)}
+                    onClick={() => setShowDetailsModal(true)}
+                    iconName="Eye"
+                    iconPosition="left"
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/employer/applications`)}
                     iconName="ArrowLeft"
                     iconPosition="left"
                   >
-                    Back to Applicants
+                    Back to Applications
                   </Button>
                 </div>
               </div>
@@ -210,20 +287,90 @@ const ApplicationDetails = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-text-primary">Application Status</h3>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      {statusOptions.map((status) => (
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-text-secondary">Current Status:</span>
+                        <ApplicationStatusBadge status={application.status} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
                         <Button
-                          key={status.value}
-                          variant={application.status === status.value ? "default" : "outline"}
+                          variant="default"
                           size="sm"
-                          onClick={() => handleStatusUpdate(status.value)}
+                          onClick={() => setShowStatusModal(true)}
+                          iconName="Edit"
+                          iconPosition="left"
                           disabled={isUpdatingStatus}
-                          className="justify-start"
                         >
-                          {status.label}
+                          Update Status
                         </Button>
-                      ))}
+                        {getNextActions(application.status).includes('interview_scheduled') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowInterviewModal(true)}
+                            iconName="Calendar"
+                            iconPosition="left"
+                            disabled={isUpdatingStatus}
+                          >
+                            Schedule Interview
+                          </Button>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Recent Messages */}
+                    {messages.length > 0 && (
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                        <h4 className="font-medium text-text-primary mb-2">Recent Messages</h4>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {messages.slice(0, 3).map((message) => (
+                            <div key={message.id} className="text-sm">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-text-primary">{message.subject}</span>
+                                <span className="text-xs text-text-secondary">
+                                  {new Date(message.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-text-secondary truncate">{message.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {messages.length > 3 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowDetailsModal(true)}
+                            className="mt-2 w-full"
+                          >
+                            View All Messages
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Interview Information */}
+                    {interviews.length > 0 && (
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                        <h4 className="font-medium text-text-primary mb-2">Scheduled Interviews</h4>
+                        <div className="space-y-2">
+                          {interviews.map((interview) => (
+                            <div key={interview.id} className="text-sm">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-text-primary">
+                                  {interview.interview_type} Interview
+                                </span>
+                                <span className="text-xs text-text-secondary">
+                                  {new Date(interview.interview_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-text-secondary">
+                                {new Date(interview.interview_date).toLocaleTimeString()} - {interview.location}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -287,39 +434,87 @@ const ApplicationDetails = () => {
 
               {/* Quick Actions */}
               <div className="flex flex-wrap gap-3 pt-4 border-t border-border">
+                {getNextActions(application.status).includes('hired') && (
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setShowStatusModal(true);
+                    }}
+                    disabled={isUpdatingStatus}
+                    iconName="UserCheck"
+                    iconPosition="left"
+                  >
+                    Hire Candidate
+                  </Button>
+                )}
+                {getNextActions(application.status).includes('interview_scheduled') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowInterviewModal(true)}
+                    disabled={isUpdatingStatus}
+                    iconName="Calendar"
+                    iconPosition="left"
+                  >
+                    Schedule Interview
+                  </Button>
+                )}
+                {getNextActions(application.status).includes('rejected') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowStatusModal(true)}
+                    disabled={isUpdatingStatus}
+                    iconName="X"
+                    iconPosition="left"
+                    className="text-error hover:text-error"
+                  >
+                    Reject Application
+                  </Button>
+                )}
                 <Button
-                  variant="default"
-                  onClick={() => handleStatusUpdate('hired')}
-                  disabled={isUpdatingStatus || application.status === 'hired'}
-                  iconName="UserCheck"
+                  variant="ghost"
+                  onClick={() => setShowDetailsModal(true)}
+                  iconName="MessageCircle"
                   iconPosition="left"
                 >
-                  Hire Candidate
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleStatusUpdate('interview')}
-                  disabled={isUpdatingStatus || application.status === 'interview'}
-                  iconName="Calendar"
-                  iconPosition="left"
-                >
-                  Schedule Interview
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleStatusUpdate('rejected')}
-                  disabled={isUpdatingStatus || application.status === 'rejected'}
-                  iconName="X"
-                  iconPosition="left"
-                  className="text-error hover:text-error"
-                >
-                  Reject Application
+                  View Messages
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Modals */}
+      {showStatusModal && (
+        <ApplicationStatusModal
+          isOpen={showStatusModal}
+          onClose={() => setShowStatusModal(false)}
+          application={application}
+          onStatusUpdate={handleStatusUpdate}
+          isLoading={isUpdatingStatus}
+        />
+      )}
+      
+      {showInterviewModal && (
+        <InterviewScheduleModal
+          isOpen={showInterviewModal}
+          onClose={() => setShowInterviewModal(false)}
+          application={application}
+          onScheduleInterview={handleInterviewSchedule}
+          isLoading={isUpdatingStatus}
+        />
+      )}
+      
+      {showDetailsModal && (
+        <ApplicationDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          application={application}
+          messages={messages}
+          interviews={interviews}
+          isEmployer={true}
+        />
+      )}
     </div>
   );
 };

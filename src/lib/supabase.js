@@ -545,6 +545,23 @@ export const db = {
     return { data, error };
   },
 
+  getUserApplicationsWithDetails: async (userId) => {
+    const { data, error } = await supabase.rpc('get_user_applications_with_details', {
+      p_user_id: userId
+    });
+    return { data, error };
+  },
+
+  markApplicationMessagesAsRead: async (applicationId, userId) => {
+    const { data, error } = await supabase
+      .from('application_messages')
+      .update({ read_by_candidate: true })
+      .eq('application_id', applicationId)
+      .eq('sender_type', 'employer')
+      .select();
+    return { data, error };
+  },
+
   getJobApplications: async (jobId) => {
     const { data, error } = await supabase
       .from('applications')

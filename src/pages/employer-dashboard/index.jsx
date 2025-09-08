@@ -141,7 +141,7 @@ const EmployerDashboard = () => {
     {
       id: 1,
       type: 'application',
-      message: 'New application received for Senior Developer position',
+      message: 'Application received for Senior Developer position',
       time: '2 hours ago',
       icon: 'FileText'
     },
@@ -229,7 +229,7 @@ const EmployerDashboard = () => {
               Welcome, {userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'HR Manager'}! 👋
             </h1>
             <p className="text-text-secondary">
-              Manage your job posts and applicants here. {stats?.totalApplications > 0 ? `You have ${stats.totalApplications} new applications.` : ''}
+              Manage your job posts and applicants here. {stats?.totalApplications > 0 ? `You have ${stats.totalApplications} applications to review.` : ''}
             </p>
           </div>
           <div className="mt-4 lg:mt-0">
