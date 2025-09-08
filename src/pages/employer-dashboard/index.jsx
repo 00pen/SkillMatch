@@ -24,6 +24,7 @@ const EmployerDashboard = () => {
   const [companyProfile, setCompanyProfile] = useState(null);
   const [editingJob, setEditingJob] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [activities, setActivities] = useState([]);
   
   // Redirect if not authenticated or wrong role
   useEffect(() => {
@@ -71,6 +72,9 @@ const EmployerDashboard = () => {
         const { data: activitiesData, error: activitiesError } = await db.getRecentActivities(user.id);
         if (!activitiesError && activitiesData) {
           setActivities(activitiesData);
+        } else {
+          // Use default activities as fallback
+          setActivities(defaultActivities);
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -132,7 +136,8 @@ const EmployerDashboard = () => {
     }
   ];
 
-  const activities = [
+  // Default activities for fallback
+  const defaultActivities = [
     {
       id: 1,
       type: 'application',
@@ -189,6 +194,14 @@ const EmployerDashboard = () => {
         console.error('Error deleting job:', error);
       }
     }
+  };
+
+  const handleViewAllJobs = () => {
+    navigate('/job-search-results', { state: { mode: 'employer' } });
+  };
+
+  const handleManageApplications = () => {
+    navigate('/application-tracking', { state: { mode: 'employer' } });
   };
 
   if (isLoading) {
@@ -339,7 +352,7 @@ const EmployerDashboard = () => {
             {companyProfile && <CompanyProfileWidget profileData={companyProfile} />}
             
             {/* Activity Feed */}
-            <ActivityFeed activities={activities} />
+            <ActivityFeed activities={activities.length > 0 ? activities : defaultActivities} />
           </div>
         </div>
       </div>
