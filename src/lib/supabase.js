@@ -368,6 +368,10 @@ export const db = {
   },
 
   getJobById: async (jobId) => {
+    if (!jobId || jobId === 'undefined') {
+      return { data: null, error: { message: 'Invalid job ID provided' } };
+    }
+    
     const { data, error } = await supabase
       .from('jobs')
       .select(`
