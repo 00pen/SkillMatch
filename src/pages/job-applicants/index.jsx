@@ -45,8 +45,9 @@ const JobApplicants = () => {
       setIsLoading(true);
       
       // Check if we're on the correct route
-      if (!window.location.pathname.includes('/employer/job/') || !window.location.pathname.includes('/applicants')) {
-        console.log('JobApplicants component loaded on wrong route, skipping');
+      const currentPath = window.location.pathname;
+      if (!currentPath.match(/^\/employer\/job\/[^\/]+\/applicants$/)) {
+        console.log('JobApplicants component loaded on wrong route, skipping. Current path:', currentPath);
         return;
       }
       
