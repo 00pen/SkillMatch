@@ -101,6 +101,7 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
   // Debug logging
   console.log('ApplicationDetailsModal props:', { isOpen, currentApplication, isEmployer });
   console.log('Modal should render:', isOpen && currentApplication);
+  console.log('Modal DOM element will render:', !!(isOpen && currentApplication));
 
   if (isLoading) {
     return (
@@ -137,7 +138,7 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}

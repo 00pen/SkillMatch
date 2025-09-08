@@ -199,6 +199,7 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        console.log('View Details button clicked for application:', application?.id);
                         // Create a safe copy of the application object to prevent serialization errors
                         const safeApplication = {
                           id: application?.id,
@@ -222,7 +223,9 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
                           messageCount: application?.messageCount || 0,
                           hasUnreadMessages: application?.hasUnreadMessages || false
                         };
+                        console.log('Setting selected application:', safeApplication);
                         setSelectedApplication(safeApplication);
+                        console.log('Setting modal open to true');
                         setIsDetailsModalOpen(true);
                       }}
                       iconName="Eye"
