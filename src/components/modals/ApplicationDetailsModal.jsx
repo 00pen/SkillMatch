@@ -42,12 +42,13 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     });
   };
 
@@ -102,6 +103,13 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
   console.log('ApplicationDetailsModal props:', { isOpen, currentApplication, isEmployer });
   console.log('Modal should render:', isOpen && currentApplication);
   console.log('Modal DOM element will render:', !!(isOpen && currentApplication));
+  console.log('Current application data:', currentApplication);
+  console.log('Available fields:', Object.keys(currentApplication || {}));
+  console.log('Name fields check:', {
+    full_name: currentApplication?.full_name,
+    candidateName: currentApplication?.candidateName,
+    email: currentApplication?.email
+  });
 
   if (isLoading) {
     return (
@@ -227,11 +235,11 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], 
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-text-secondary">Name:</span>
-                          <p className="text-text-primary">{currentApplication.candidateName || currentApplication.full_name}</p>
+                          <p className="text-text-primary">{currentApplication.full_name || currentApplication.candidateName || 'N/A'}</p>
                         </div>
                         <div>
                           <span className="text-text-secondary">Email:</span>
-                          <p className="text-text-primary">{currentApplication.email}</p>
+                          <p className="text-text-primary">{currentApplication.email || 'N/A'}</p>
                         </div>
                         {currentApplication.phone && (
                           <div>
