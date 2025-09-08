@@ -24,6 +24,7 @@ import CompanyProfile from './pages/company-profile/index';
 import SavedJobs from './pages/saved-jobs';
 import JobApplicants from './pages/job-applicants';
 import ApplicationDetails from './pages/application-details';
+import EmployerApplicationManagement from './pages/employer-application-management';
 import AuthCallback from './pages/auth/callback';
 
 const Routes = () => {
@@ -158,6 +159,13 @@ const Routes = () => {
               <ProtectedRoute requiredRole="employer">
                 <PageTransition>
                   <ApplicationDetails />
+                </PageTransition>
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/applications" element={
+              <ProtectedRoute requiredRole="employer">
+                <PageTransition>
+                  <EmployerApplicationManagement />
                 </PageTransition>
               </ProtectedRoute>
             } />

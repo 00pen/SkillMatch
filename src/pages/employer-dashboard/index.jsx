@@ -201,7 +201,7 @@ const EmployerDashboard = () => {
   };
 
   const handleManageApplications = () => {
-    navigate('/application-tracking', { state: { mode: 'employer' } });
+    navigate('/employer/applications');
   };
 
   if (isLoading) {

@@ -4,7 +4,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import ApplicationStatusBadge from './ApplicationStatusBadge';
 import ApplicationProgressIndicator from './ApplicationProgressIndicator';
-import ApplicationDetailsModal from './ApplicationDetailsModal';
+import ApplicationDetailsModal from '../../../components/modals/ApplicationDetailsModal';
 
 const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDelete }) => {
   const [selectedApplications, setSelectedApplications] = useState([]);
@@ -204,9 +204,9 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
                       }}
                       iconName="Eye"
                     >
-                      View
+                      View Details
                     </Button>
-                    {application?.status === 'applied' && (
+                    {(application?.status === 'pending' || application?.status === 'reviewed') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -282,7 +282,7 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
               >
                 View Application
               </Button>
-              {application?.status === 'applied' && (
+              {(application?.status === 'pending' || application?.status === 'reviewed') && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -335,7 +335,7 @@ const ApplicationTable = ({ applications = [], onStatusUpdate, onWithdraw, onDel
           setIsDetailsModalOpen(false);
           setSelectedApplication(null);
         }}
-        application={selectedApplication}
+        applicationId={selectedApplication?.id}
       />
     </div>
   );

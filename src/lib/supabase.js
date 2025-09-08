@@ -697,6 +697,119 @@ export const db = {
     return { data: data?.[0], error };
   },
 
+  updateApplicationStatusWithMessage: async (applicationId, newStatus, senderId, options = {}) => {
+    const { data, error } = await supabase.rpc('update_application_status_with_message', {
+      p_application_id: applicationId,
+      p_new_status: newStatus,
+      p_sender_id: senderId,
+      p_message_subject: options.messageSubject,
+      p_message_content: options.messageContent,
+      p_template_name: options.templateName,
+      p_interview_date: options.interviewDate,
+      p_interview_type: options.interviewType,
+      p_interview_location: options.interviewLocation
+    });
+    return { data, error };
+  },
+
+  getApplicationDetails: async (applicationId) => {
+    const { data, error } = await supabase.rpc('get_application_details', {
+      p_application_id: applicationId
+    });
+    return { data, error };
+  },
+
+  getApplicationMessages: async (applicationId) => {
+    const { data, error } = await supabase
+      .from('application_messages')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  createApplicationMessage: async (messageData) => {
+    const { data, error } = await supabase
+      .from('application_messages')
+      .insert([messageData])
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  markMessageAsRead: async (messageId) => {
+    const { data, error } = await supabase
+      .from('application_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', messageId)
+      .select();
+    return { data: data?.[0], error };
+  },
+
+  getMessageTemplates: async () => {
+    const { data, error } = await supabase
+      .from('message_templates')
+      .select('*')
+      .order('name');
+    return { data, error };
+  },
+
+  createInterview: async (interviewData) => {
+    const { data, error } = await supabase
+      .from('interviews')
+      .insert([interviewData])
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  updateInterview: async (interviewId, updates) => {
+    const { data, error } = await supabase
+      .from('interviews')
+      .update(updates)
+      .eq('id', interviewId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  getApplicationInterviews: async (applicationId) => {
+    const { data, error } = await supabase
+      .from('interviews')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('scheduled_at', { ascending: false });
+    return { data, error };
+  },
+
+  getEmailNotifications: async (applicationId) => {
+    const { data, error } = await supabase
+      .from('email_notifications')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('sent_at', { ascending: false });
+    return { data, error };
+  },
+
+  sendEmailNotification: async (emailData) => {
+    const { data, error } = await supabase
+      .from('email_notifications')
+      .insert([emailData])
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  updateEmailNotificationStatus: async (notificationId, status) => {
+    const { data, error } = await supabase
+      .from('email_notifications')
+      .update({ delivery_status: status })
+      .eq('id', notificationId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
   // Saved Jobs
   saveJob: async (userId, jobId) => {
     const { data, error } = await supabase
