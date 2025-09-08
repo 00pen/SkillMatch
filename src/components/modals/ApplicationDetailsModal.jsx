@@ -3,7 +3,7 @@ import { db } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 import Icon from '../AppIcon';
-import ApplicationProgressIndicator from '../ApplicationProgressIndicator';
+import ApplicationProgressIndicator from '../../pages/application-tracking/components/ApplicationProgressIndicator';
 import ApplicationStatusBadge from '../ApplicationStatusBadge';
 
 const ApplicationDetailsModal = ({ isOpen, onClose, application, messages = [], interviews = [], isEmployer = false }) => {
