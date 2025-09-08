@@ -34,7 +34,17 @@ const JobPostingCard = ({ job, onEdit, onViewApplicants, onDelete }) => {
   };
 
   const handleViewDetails = () => {
-    navigate('/job-details', { state: { jobId: job?.id } });
+    navigate(`/job-details/${job?.id}`);
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(job);
+    }
+  };
+
+  const handleViewApplicants = () => {
+    navigate(`/employer/job/${job?.id}/applicants`);
   };
 
   return (
@@ -54,7 +64,7 @@ const JobPostingCard = ({ job, onEdit, onViewApplicants, onDelete }) => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={onEdit}
+            onClick={handleEdit}
             className="text-text-secondary hover:text-text-primary"
           >
             <Icon name="Edit" size={16} />
@@ -105,7 +115,7 @@ const JobPostingCard = ({ job, onEdit, onViewApplicants, onDelete }) => {
           <Button
             variant="default"
             size="sm"
-            onClick={onViewApplicants}
+            onClick={handleViewApplicants}
             iconName="Users"
             iconPosition="left"
             iconSize={14}

@@ -643,6 +643,47 @@ export const db = {
     return { data, error };
   },
 
+  // Job Applications
+  getJobApplications: async (jobId) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        user_profiles (
+          full_name,
+          email,
+          phone,
+          location
+        )
+      `)
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false });
+    
+    // Flatten the user profile data
+    const transformedData = data?.map(app => ({
+      ...app,
+      full_name: app.user_profiles?.full_name || app.full_name,
+      email: app.user_profiles?.email || app.email,
+      phone: app.user_profiles?.phone || app.phone,
+      location: app.user_profiles?.location || app.location
+    })) || [];
+    
+    return { data: transformedData, error };
+  },
+
+  updateApplicationStatus: async (applicationId, status) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
   // Saved Jobs
   saveJob: async (userId, jobId) => {
     const { data, error } = await supabase

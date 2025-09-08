@@ -12,6 +12,7 @@ import CompanyProfileWidget from './components/CompanyProfileWidget';
 import CompanyProfileCompletionWidget from './components/CompanyProfileCompletionWidget';
 import CompanyManagementWidget from './components/CompanyManagementWidget';
 import QuickActions from './components/QuickActions';
+import EditJobModal from '../../components/modals/EditJobModal';
 
 const EmployerDashboard = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const EmployerDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState({});
   const [companyProfile, setCompanyProfile] = useState(null);
+  const [editingJob, setEditingJob] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Redirect if not authenticated or wrong role
   useEffect(() => {
@@ -129,9 +132,29 @@ const EmployerDashboard = () => {
     }
   ];
 
-  const [activities, setActivities] = useState([]);
-
-
+  const activities = [
+    {
+      id: 1,
+      type: 'application',
+      message: 'New application received for Senior Developer position',
+      time: '2 hours ago',
+      icon: 'FileText'
+    },
+    {
+      id: 2,
+      type: 'job_posted',
+      message: 'Job posting "UI/UX Designer" went live',
+      time: '1 day ago',
+      icon: 'Briefcase'
+    },
+    {
+      id: 3,
+      type: 'interview',
+      message: 'Interview scheduled with John Smith',
+      time: '2 days ago',
+      icon: 'Calendar'
+    }
+  ];
 
   const filteredJobs = jobs?.filter(job => {
     if (selectedFilter === 'all') return true;
@@ -139,41 +162,31 @@ const EmployerDashboard = () => {
   });
 
   const handlePostNewJob = () => {
-    // Navigate to job posting creation
-    navigate('/create-job');
+    navigate('/job-posting');
   };
 
-  const handleEditJob = (jobId) => {
-    navigate('/job-details', { state: { jobId, mode: 'edit' } });
+  const handleEditJob = (job) => {
+    setEditingJob(job);
+    setIsEditModalOpen(true);
   };
 
-  const handleViewApplicants = (jobId) => {
-    navigate('/application-tracking', { state: { jobId, mode: 'employer' } });
-  };
-
-  const handleViewAllJobs = () => {
-    navigate('/job-search-results', { state: { mode: 'employer' } });
-  };
-
-  const handleManageApplications = () => {
-    navigate('/application-tracking', { state: { mode: 'employer' } });
+  const handleSaveJob = (updatedJob) => {
+    setJobs(prev => prev.map(job => 
+      job.id === updatedJob.id ? updatedJob : job
+    ));
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (window.confirm('Are you sure you want to delete this job posting? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this job posting?')) {
       try {
         const { error } = await db.deleteJob(jobId);
         if (error) {
           console.error('Error deleting job:', error);
-          alert('Failed to delete job. Please try again.');
-        } else {
-          // Remove job from local state
-          setJobs(jobs.filter(job => job.id !== jobId));
-          alert('Job deleted successfully.');
+          return;
         }
+        setJobs(prev => prev.filter(job => job.id !== jobId));
       } catch (error) {
         console.error('Error deleting job:', error);
-        alert('Failed to delete job. Please try again.');
       }
     }
   };
@@ -272,23 +285,23 @@ const EmployerDashboard = () => {
               <div className="p-6">
                 {filteredJobs?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
-                    {filteredJobs?.map((job) => (
+                    {filteredJobs.map((job) => (
                       <JobPostingCard
-                        key={job?.id}
+                        key={job.id}
                         job={job}
-                        onEdit={() => handleEditJob(job?.id)}
-                        onViewApplicants={() => handleViewApplicants(job?.id)}
+                        onEdit={handleEditJob}
                         onDelete={handleDeleteJob}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Icon name="Briefcase" size={48} className="text-text-secondary mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-text-primary mb-2">No jobs found</h3>
+                    <Icon name="Briefcase" size={48} className="mx-auto text-text-secondary mb-4" />
+                    <h3 className="text-lg font-medium text-text-primary mb-2">No job postings yet</h3>
                     <p className="text-text-secondary mb-6">
-                      {selectedFilter === 'all' ? "You haven't posted any jobs yet. Create your first job posting to start attracting candidates."
-                        : `No ${selectedFilter} jobs found. Try changing the filter or create a new job posting.`
+                      {selectedFilter === 'all' 
+                        ? 'Create your first job posting to start attracting top talent.' 
+                        : `No jobs found with status "${selectedFilter}".`
                       }
                     </p>
                     <Button
@@ -330,6 +343,17 @@ const EmployerDashboard = () => {
           </div>
         </div>
       </div>
+      
+      {/* Edit Job Modal */}
+      <EditJobModal
+        job={editingJob}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingJob(null);
+        }}
+        onSave={handleSaveJob}
+      />
     </div>
   );
 };

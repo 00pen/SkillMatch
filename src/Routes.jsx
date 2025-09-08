@@ -22,6 +22,7 @@ import CandidateDetails from './pages/candidate-details/index';
 import CompanyDetails from './pages/company-details';
 import CompanyProfile from './pages/company-profile/index';
 import SavedJobs from './pages/saved-jobs';
+import JobApplicants from './pages/job-applicants';
 import AuthCallback from './pages/auth/callback';
 
 const Routes = () => {
@@ -142,6 +143,13 @@ const Routes = () => {
               <ProtectedRoute requiredRole="employer">
                 <PageTransition>
                   <CompanyProfile />
+                </PageTransition>
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/job/:jobId/applicants" element={
+              <ProtectedRoute requiredRole="employer">
+                <PageTransition>
+                  <JobApplicants />
                 </PageTransition>
               </ProtectedRoute>
             } />
