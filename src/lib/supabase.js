@@ -752,22 +752,24 @@ export const db = {
   updateApplicationStatusWithMessage: async (applicationId, newStatus, senderId, options = {}) => {
     console.log('Updating application status with direct queries:', { applicationId, newStatus, senderId, options });
     
-    // First, verify the application exists
+    // First, verify the application exists in public.applications
     const { data: existingApp, error: checkError } = await supabase
+      .schema('public')
       .from('applications')
       .select('id, status, user_id')
       .eq('id', applicationId)
       .single();
     
     if (checkError || !existingApp) {
-      console.error('Application not found during check:', { applicationId, checkError });
+      console.error('Application not found in public.applications:', { applicationId, checkError });
       return { data: null, error: { message: 'Application not found' } };
     }
     
-    console.log('Application found, proceeding with update:', existingApp);
+    console.log('Application found in public.applications, proceeding with update:', existingApp);
     
-    // Direct update to applications table
+    // Direct update to public.applications table
     const { data: updateData, error: updateError } = await supabase
+      .schema('public')
       .from('applications')
       .update({ 
         status: newStatus,
