@@ -78,7 +78,7 @@ const ApplicationDetails = () => {
       // Get user profile data
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select('id, full_name, email, phone, location, avatar_url')
+        .select('id, full_name, email, phone, location')
         .eq('id', appData.user_id)
         .single();
       
@@ -103,13 +103,13 @@ const ApplicationDetails = () => {
         .order('scheduled_at', { ascending: false });
       
       // Format the data with comprehensive fallbacks
+      // Use application data first, then profile data as fallback
       const formattedData = {
         ...appData,
-        full_name: profileData?.full_name || 'Unknown Applicant',
-        email: profileData?.email || 'No email provided',
-        phone: profileData?.phone || null,
-        location: profileData?.location || null,
-        avatar_url: profileData?.avatar_url || null,
+        full_name: appData.full_name || profileData?.full_name || 'Unknown Applicant',
+        email: appData.email || profileData?.email || 'No email provided',
+        phone: appData.phone || profileData?.phone || null,
+        location: appData.location || profileData?.location || null,
         jobTitle: appData.jobs?.title || 'Unknown Position',
         company: appData.jobs?.companies?.name || 'Unknown Company',
         job: {

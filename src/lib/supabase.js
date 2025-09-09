@@ -750,18 +750,73 @@ export const db = {
   },
 
   updateApplicationStatusWithMessage: async (applicationId, newStatus, senderId, options = {}) => {
-    const { data, error } = await supabase.rpc('update_application_status_with_message', {
-      p_application_id: applicationId,
-      p_new_status: newStatus,
-      p_sender_id: senderId,
-      p_message_subject: options.messageSubject || null,
-      p_message_content: options.messageContent || null,
-      p_template_name: options.templateName || null,
-      p_interview_date: options.interviewDate || null,
-      p_interview_type: options.interviewType || null,
-      p_interview_location: options.interviewLocation || null
-    });
-    return { data, error };
+    console.log('Updating application status with direct queries:', { applicationId, newStatus, senderId, options });
+    
+    // Direct update to applications table
+    const { data: updateData, error: updateError } = await supabase
+      .from('applications')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Application update failed:', updateError);
+      return { data: null, error: updateError };
+    }
+    
+    console.log('Application status updated successfully:', updateData);
+    
+    // Insert message if content provided
+    if (options.messageContent || options.messageSubject) {
+      const { data: messageData, error: messageError } = await supabase
+        .from('application_messages')
+        .insert({
+          application_id: applicationId,
+          sender_id: senderId,
+          sender_type: 'employer',
+          subject: options.messageSubject || 'Status Update',
+          content: options.messageContent || `Application status updated to ${newStatus}`,
+          message_type: options.templateName === 'interview_invite' ? 'interview_invite' : 
+                       options.templateName === 'rejection' ? 'rejection' :
+                       options.templateName === 'offer' ? 'offer' : 'status_update'
+        })
+        .select()
+        .single();
+      
+      if (messageError) {
+        console.error('Message insert failed:', messageError);
+      } else {
+        console.log('Message created successfully:', messageData);
+      }
+    }
+    
+    // Insert interview record if scheduling interview
+    if (options.interviewDate && newStatus === 'interview_scheduled') {
+      const { data: interviewData, error: interviewError } = await supabase
+        .from('interviews')
+        .insert({
+          application_id: applicationId,
+          interview_date: options.interviewDate,
+          interview_type: options.interviewType || 'video',
+          location: options.interviewLocation || 'TBD',
+          status: 'scheduled',
+          interviewer_notes: options.interviewNotes || null
+        })
+        .select()
+        .single();
+      
+      if (interviewError) {
+        console.error('Interview insert failed:', interviewError);
+      } else {
+        console.log('Interview scheduled successfully:', interviewData);
+      }
+    }
+    
+    return { data: updateData, error: null };
   },
 
   getApplicationDetails: async (applicationId) => {
