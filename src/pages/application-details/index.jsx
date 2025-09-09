@@ -36,10 +36,18 @@ const ApplicationDetails = () => {
   ];
 
   useEffect(() => {
-    loadApplicationDetails();
+    if (applicationId) {
+      loadApplicationDetails();
+    }
   }, [applicationId]);
 
   const loadApplicationDetails = async () => {
+    if (!applicationId || applicationId === 'undefined') {
+      console.error('Invalid application ID:', applicationId);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       

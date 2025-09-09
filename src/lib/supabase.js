@@ -760,15 +760,22 @@ export const db = {
         updated_at: new Date().toISOString()
       })
       .eq('id', applicationId)
-      .select()
-      .single();
+      .select();
+    
+    // Handle the response - take first item if array returned
+    const applicationData = Array.isArray(updateData) ? updateData[0] : updateData;
     
     if (updateError) {
       console.error('Application update failed:', updateError);
       return { data: null, error: updateError };
     }
     
-    console.log('Application status updated successfully:', updateData);
+    if (!applicationData) {
+      console.error('No application found with ID:', applicationId);
+      return { data: null, error: { message: 'Application not found' } };
+    }
+    
+    console.log('Application status updated successfully:', applicationData);
     
     // Insert message if content provided
     if (options.messageContent || options.messageSubject) {
@@ -816,7 +823,7 @@ export const db = {
       }
     }
     
-    return { data: updateData, error: null };
+    return { data: applicationData, error: null };
   },
 
   getApplicationDetails: async (applicationId) => {
