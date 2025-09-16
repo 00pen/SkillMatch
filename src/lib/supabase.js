@@ -750,61 +750,119 @@ export const db = {
   },
 
   updateApplicationStatusWithMessage: async (applicationId, newStatus, senderId, options = {}) => {
-    console.log('Updating application status with direct queries:', { applicationId, newStatus, senderId, options });
+    console.log('🔄 Starting application status update:', { 
+      applicationId, 
+      newStatus, 
+      senderId, 
+      options 
+    });
     
     // First, verify the application exists in public.applications
     const { data: existingApp, error: checkError } = await supabase
       .schema('public')
       .from('applications')
-      .select('id, status, user_id')
+      .select('id, status, user_id, updated_at')
       .eq('id', applicationId)
       .single();
     
     if (checkError || !existingApp) {
-      console.error('Application not found in public.applications:', { applicationId, checkError });
+      console.error('❌ Application not found in public.applications:', { applicationId, checkError });
       return { data: null, error: { message: 'Application not found' } };
     }
     
-    console.log('Application found in public.applications, proceeding with update:', existingApp);
+    console.log('✅ Application found - Current status:', {
+      id: existingApp.id,
+      currentStatus: existingApp.status,
+      newStatus: newStatus,
+      lastUpdated: existingApp.updated_at,
+      statusChange: `${existingApp.status} → ${newStatus}`
+    });
     
     // Direct update to public.applications table
+    const updateTimestamp = new Date().toISOString();
+    console.log('🔄 Executing database update:', {
+      table: 'applications',
+      id: applicationId,
+      updateData: { status: newStatus, updated_at: updateTimestamp }
+    });
+    
     const { data: updateData, error: updateError } = await supabase
       .schema('public')
       .from('applications')
       .update({ 
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: updateTimestamp
       })
       .eq('id', applicationId)
       .select();
     
     if (updateError) {
-      console.error('Application update failed:', updateError);
+      console.error('❌ Database update failed:', {
+        error: updateError,
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint
+      });
       return { data: null, error: updateError };
     }
     
     // Handle the response - take first item if array returned
     const applicationData = Array.isArray(updateData) ? updateData[0] : updateData;
     
+    console.log('📊 Database update response:', {
+      updateData,
+      applicationData,
+      isArray: Array.isArray(updateData),
+      dataLength: Array.isArray(updateData) ? updateData.length : 'not array'
+    });
+    
     // If no data returned but no error, the update was successful but didn't return the row
     // This can happen with RLS policies or other database configurations
     if (!applicationData && !updateError) {
-      console.log('Application status updated successfully (no data returned)');
+      console.log('⚠️ Update successful but no data returned - checking if status actually changed');
+      
+      // Verify the update by querying the database again
+      const { data: verifyData, error: verifyError } = await supabase
+        .schema('public')
+        .from('applications')
+        .select('id, status, updated_at')
+        .eq('id', applicationId)
+        .single();
+      
+      if (verifyError) {
+        console.error('❌ Verification query failed:', verifyError);
+      } else {
+        console.log('🔍 Verification result:', {
+          id: verifyData.id,
+          actualStatus: verifyData.status,
+          expectedStatus: newStatus,
+          statusMatches: verifyData.status === newStatus,
+          updatedAt: verifyData.updated_at
+        });
+      }
+      
       // Return a minimal success response
       const successData = {
         id: applicationId,
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: updateTimestamp
       };
       return { data: successData, error: null };
     }
     
     if (!applicationData) {
-      console.error('No application found with ID:', applicationId);
+      console.error('❌ No application data returned after update:', applicationId);
       return { data: null, error: { message: 'Application not found' } };
     }
     
-    console.log('Application status updated successfully:', applicationData);
+    console.log('✅ Application status updated successfully:', {
+      id: applicationData.id,
+      oldStatus: existingApp.status,
+      newStatus: applicationData.status,
+      statusChanged: existingApp.status !== applicationData.status,
+      updatedAt: applicationData.updated_at
+    });
     
     // Insert message if content provided
     if (options.messageContent || options.messageSubject) {

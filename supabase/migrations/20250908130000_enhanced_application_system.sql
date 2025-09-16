@@ -29,7 +29,7 @@ DROP CONSTRAINT IF EXISTS applications_status_check;
 
 ALTER TABLE applications 
 ADD CONSTRAINT applications_status_check 
-CHECK (status IN ('pending', 'reviewed', 'interview_scheduled', 'interviewed', 'offer_extended', 'hired', 'rejected', 'withdrawn'));
+CHECK (status IN ('applied', 'pending', 'reviewed', 'under-review', 'interview', 'interview_scheduled', 'interviewed', 'offer', 'offer_extended', 'hired', 'rejected', 'withdrawn'));
 
 -- Create application_messages table for status update messages
 CREATE TABLE IF NOT EXISTS application_messages (
