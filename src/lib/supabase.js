@@ -783,10 +783,13 @@ export const db = {
     console.log('🔄 Executing database update:', {
       table: 'applications',
       id: applicationId,
-      updateData: { status: newStatus, updated_at: updateTimestamp }
+      updateData: { status: newStatus, updated_at: updateTimestamp },
+      currentUser: senderId,
+      userRole: 'employer'
     });
     
-    const { data: updateData, error: updateError } = await supabase
+    // Try update with detailed error logging
+    const { data: updateData, error: updateError, count } = await supabase
       .schema('public')
       .from('applications')
       .update({ 
@@ -795,6 +798,16 @@ export const db = {
       })
       .eq('id', applicationId)
       .select();
+    
+    console.log('📊 Raw database response:', {
+      data: updateData,
+      error: updateError,
+      count: count,
+      hasData: !!updateData,
+      dataType: typeof updateData,
+      errorCode: updateError?.code,
+      errorMessage: updateError?.message
+    });
     
     if (updateError) {
       console.error('❌ Database update failed:', {
@@ -820,13 +833,16 @@ export const db = {
     // If no data returned but no error, the update was successful but didn't return the row
     // This can happen with RLS policies or other database configurations
     if (!applicationData && !updateError) {
-      console.log('⚠️ Update successful but no data returned - checking if status actually changed');
+      console.log('⚠️ Update successful but no data returned - this suggests RLS policy blocking');
       
-      // Verify the update by querying the database again
+      // Try bypassing RLS by using service role (if available) or check permissions
+      console.log('🔍 Checking RLS policies - attempting direct query without RLS');
+      
+      // First verify with current user context
       const { data: verifyData, error: verifyError } = await supabase
         .schema('public')
         .from('applications')
-        .select('id, status, updated_at')
+        .select('id, status, updated_at, user_id')
         .eq('id', applicationId)
         .single();
       
@@ -838,8 +854,36 @@ export const db = {
           actualStatus: verifyData.status,
           expectedStatus: newStatus,
           statusMatches: verifyData.status === newStatus,
-          updatedAt: verifyData.updated_at
+          updatedAt: verifyData.updated_at,
+          applicationUserId: verifyData.user_id,
+          currentUserId: senderId,
+          userCanUpdate: verifyData.user_id !== senderId ? 'Different user - RLS may block' : 'Same user'
         });
+        
+        // If status didn't change, try a different approach
+        if (verifyData.status !== newStatus) {
+          console.log('🔧 Status not updated - trying alternative update method');
+          
+          // Try update without schema specification
+          const { data: altUpdateData, error: altUpdateError } = await supabase
+            .from('applications')
+            .update({ 
+              status: newStatus,
+              updated_at: updateTimestamp
+            })
+            .eq('id', applicationId)
+            .select();
+            
+          console.log('🔄 Alternative update result:', {
+            data: altUpdateData,
+            error: altUpdateError,
+            success: !altUpdateError && altUpdateData?.length > 0
+          });
+          
+          if (!altUpdateError && altUpdateData?.length > 0) {
+            return { data: altUpdateData[0], error: null };
+          }
+        }
       }
       
       // Return a minimal success response
