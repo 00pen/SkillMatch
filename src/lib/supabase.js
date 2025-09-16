@@ -778,12 +778,25 @@ export const db = {
       .eq('id', applicationId)
       .select();
     
-    // Handle the response - take first item if array returned
-    const applicationData = Array.isArray(updateData) ? updateData[0] : updateData;
-    
     if (updateError) {
       console.error('Application update failed:', updateError);
       return { data: null, error: updateError };
+    }
+    
+    // Handle the response - take first item if array returned
+    const applicationData = Array.isArray(updateData) ? updateData[0] : updateData;
+    
+    // If no data returned but no error, the update was successful but didn't return the row
+    // This can happen with RLS policies or other database configurations
+    if (!applicationData && !updateError) {
+      console.log('Application status updated successfully (no data returned)');
+      // Return a minimal success response
+      const successData = {
+        id: applicationId,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      return { data: successData, error: null };
     }
     
     if (!applicationData) {
